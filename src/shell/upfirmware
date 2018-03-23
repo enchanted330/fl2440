@@ -1,0 +1,170 @@
+#!/bin/sh
+#This shell scripts used to update the u-boot linux kernel, root file system image when Linux running
+
+up_erase=/usr/sbin/flash_eraseall
+up_write=/usr/sbin/nandwrite
+up_umount=/bin/umount
+cu_version=`cat /proc/version`
+
+usage()
+{
+  echo "  Usage:   upfirmware -[f/k/u] [filename]"
+  echo "Example:   upfirmware  linuxrom-s3c2440.bin"
+  echo "           upfriwmare  u-boot-s3c2440.bin"
+  echo "           upfriwmare  rootfs.jffs2"
+  echo "           upfirmware -u uboot.bin"
+  echo "           upfirmware -k lin.bin"
+  echo "           upfirmware -f fs.yaffs2"
+  exit;
+}
+
+up_uboot()
+{
+    file_name=$1
+    partition=`cat /proc/mtd | grep boot | awk -F ":" '{print $1}'`
+    echo "**************$file_name"
+    if [ -z "$partition" ] ; then
+        echo "Can not find u-boot partition for update.\n"
+        exit 
+    fi
+    echo "Find u-boot partition for update : $partition"
+    burn_image $partition $file_name
+     
+}
+
+up_kernel()
+{
+    file_name=$1
+    partition=`cat /proc/mtd | grep kernel | awk -F ":" '{print $1}'`
+
+    if [ -z "$partition" ] ; then
+        echo "Can not find kernel partition for update.\n"
+        exit 
+    fi
+    echo "Find kernel partition for update : $partition"
+    burn_image $partition $file_name
+     
+}
+up_rootfs()
+{
+    file_name=$1
+    for i in jffs2 yaffs2 ubifs ; do
+    {
+        type=`echo $file_name | grep $i | awk -F "." '{print $2}'`
+        echo "The file system type is $type"
+
+        if [ -n "$type" ] ; then
+            break;
+        fi
+    }
+    done
+
+    if [ -n "$type" ] ; then
+        partition=`cat /proc/mtd | grep $type | awk -F ":" '{print $1}'`
+
+        if [ -z "$partition" ] ; then
+            echo "Can not find $type partition for update.\n"
+            exit 
+        fi
+        echo "Find $type partition for update : $partition"
+    fi
+
+    burn_image $partition $file_name
+     
+}
+
+burn_image()
+{
+    partition=$1
+    file_name=$2
+
+    echo "Erase partition /dev/$partition."
+    if ( ! $up_erase /dev/$partition) ; then
+        echo "Erase /dev/$partition failure."
+        exit
+    fi
+
+    if ( ! $up_write -p /dev/$partition $file_name) ; then
+        echo "Write $file_name to /dev/$partition failure."
+        exit
+    fi
+}
+
+
+#------------------------------------------------------------
+# Judgment it's Kernel/rootfs/u-boot
+#print same basic infomation,and judgement the input file is 
+#update for linux kernel or others.
+#------------------------------------------------------------
+while getopts :u:k:f:a:h opt
+do
+    case $opt in
+        u)
+            type="uboot"
+            echo "The update file name is $OPTARG"
+            up_uboot $OPTARG
+            break;
+            ;;
+        k) 
+            type="kernel"
+            echo "The update file name is $OPTARG"
+            up_kernel $OPTARG
+            break;
+            ;;
+        f) 
+            type="rootfs"
+            echo "The update file name is $OPTARG"
+            up_rootfs $OPTARG
+            break;
+            ;;
+        a) 
+            type="apps"
+            break;
+            ;;
+        h) 
+            usage
+            ;;
+        ?) 
+            usage
+            ;;
+     esac
+done
+
+
+#    up_firm_name=$1
+
+#    echo "Currnt Runing linux version: $cu_version"
+
+#    if [ $up_firm_name = "u-boot-s3c2440.bin" ] ; then 
+#        type=u-boot
+#    elif [ $up_firm_name = "linuxrom-s3c2440.bin" ] ; then 
+#        type=kernel
+#    elif [ $up_firm_name = "rootfs.jffs2" ] ; then
+#        type=rootfs
+#    else
+#       echo "input args error!\n" 
+#       exit 
+#    fi
+
+#------------------------------------------------------------
+#check the partition,if need umount the partition ,umount it 
+#------------------------------------------------------------
+#    partition=`cat /proc/mtd | grep $type | awk -F ":" '{print $1}'`
+#
+#    if [ $type = "rootfs" ] 
+#    then
+#        if ( ! $up_umount /dev/$partition ) ; then
+#            echo "Umount /dev/$partition failure."
+#            exit
+#        fi
+#    fi
+#
+#    if [ -z "$partition" ] ; then
+#        echo "Can not find $type partition for update.\n"
+#    exit 
+#    fi
+#
+#    echo "update $type succeed!"
+#    echo "Your current linux version is :"
+#    echo "$cu_version"
+

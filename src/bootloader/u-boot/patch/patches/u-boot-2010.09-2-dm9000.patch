@@ -1,0 +1,70 @@
+diff -Nuar u-boot-2010.09/board/lingyun/fl2440/fl2440.c u-boot-2010.09-2-dm9000/board/lingyun/fl2440/fl2440.c
+--- u-boot-2010.09/board/lingyun/fl2440/fl2440.c	2015-11-16 13:36:18.438996129 +0800
++++ u-boot-2010.09-2-dm9000/board/lingyun/fl2440/fl2440.c	2015-11-16 13:35:08.196993893 +0800
+@@ -166,6 +166,9 @@
+ #ifdef CONFIG_CS8900
+ 	rc = cs8900_initialize(0, CONFIG_CS8900_BASE);
+ #endif
++#ifdef CONFIG_DRIVER_DM9000 
++    rc = dm9000_initialize(bis);
++#endif
+ 	return rc;
+ }
+ #endif
+diff -Nuar u-boot-2010.09/drivers/net/dm9000x.c u-boot-2010.09-2-dm9000/drivers/net/dm9000x.c
+--- u-boot-2010.09/drivers/net/dm9000x.c	2010-09-29 05:20:55.000000000 +0800
++++ u-boot-2010.09-2-dm9000/drivers/net/dm9000x.c	2015-11-16 13:35:08.199994163 +0800
+@@ -364,7 +364,7 @@
+ 	while (!(phy_read(1) & 0x20)) {	/* autonegation complete bit */
+ 		udelay(1000);
+ 		i++;
+-		if (i == 10000) {
++		if (i == 2000) { /* Modify by guowenxue */
+ 			printf("could not establish link\n");
+ 			return 0;
+ 		}
+diff -Nuar u-boot-2010.09/include/configs/fl2440.h u-boot-2010.09-2-dm9000/include/configs/fl2440.h
+--- u-boot-2010.09/include/configs/fl2440.h	2015-11-16 13:36:18.441996228 +0800
++++ u-boot-2010.09-2-dm9000/include/configs/fl2440.h	2015-11-16 13:35:08.199994163 +0800
+@@ -58,10 +58,15 @@
+ /*
+  * Hardware drivers
+  */
+-#define CONFIG_NET_MULTI
+-#define CONFIG_CS8900		/* we have a CS8900 on-board */
+-#define CONFIG_CS8900_BASE	0x19000300
+-#define CONFIG_CS8900_BUS16	/* the Linux driver does accesses as shorts */
++#define CONFIG_NET_MULTI            1
++#define CONFIG_NET_RETRY_COUNT      20
++#define CONFIG_DRIVER_DM9000        1
++#define CONFIG_DM9000_BASE          0x20000300  /*  nGCS4 */
++#define DM9000_IO                   CONFIG_DM9000_BASE
++#define DM9000_DATA                 (CONFIG_DM9000_BASE+4)
++#define CONFIG_DM9000_USE_16BIT     1
++#define CONFIG_DM9000_NO_SROM       1
++#undef CONFIG_DM9000_DEBUG
+ 
+ /*
+  * select serial console configuration
+@@ -97,16 +102,14 @@
+ #define CONFIG_CMD_CACHE
+ #define CONFIG_CMD_DATE
+ #define CONFIG_CMD_ELF
++#define CONFIG_CMD_PING
+ 
+ 
+ #define CONFIG_BOOTDELAY	2
+-/*#define CONFIG_BOOTARGS	"root=ramfs devfs=mount console=ttySA0,9600" */
+-/*#define CONFIG_ETHADDR	08:00:3e:26:0a:5b */
+-#define CONFIG_NETMASK          255.255.255.0
+-#define CONFIG_IPADDR		10.0.0.110
+-#define CONFIG_SERVERIP		10.0.0.1
+-/*#define CONFIG_BOOTFILE	"elinos-lart" */
+-/*#define CONFIG_BOOTCOMMAND	"tftp; bootm" */
++#define CONFIG_ETHADDR      08:00:3e:26:0a:5b 
++#define CONFIG_NETMASK      255.255.255.0
++#define CONFIG_IPADDR       192.168.1.168
++#define CONFIG_SERVERIP     192.168.1.2
+ 
+ #if defined(CONFIG_CMD_KGDB)
+ #define CONFIG_KGDB_BAUDRATE	115200		/* speed to run kgdb serial port */

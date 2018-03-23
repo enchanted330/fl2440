@@ -1,0 +1,43 @@
+#!/bin/sh
+# Copyright (C) 2012 GuoWenxue <guowenxue@gmail.com QQ:281143292>
+# This Shell scripts used to NAT by iptables, to make wlan0 as the downlink device
+# and set the uplink device as eth0/ppp10, it will be called by crond
+
+DOWNLINK_DEV="wlan0"
+DEF_UPLINK_DEV="eth0"
+
+source /etc/profile
+source $network_cfg_dir/ifcfg-$DOWNLINK_DEV
+
+if [ $WORKMODE != AP ] ; then 
+   echo "$DOWNLINK_DEV doesn't work as AP mode, exit now..."
+   exit
+fi  
+
+NETWORK=`/bin/ipcalc -n $IPADDR_AP $NETMASK_AP`
+DOWNLINK_SUBNET=${NETWORK##*=}
+
+#set -x
+
+#Current defaulte gateway out-going interface
+cur_gateway_inf=`ip route show | grep default | sed -n '1p' | awk -F "dev" '{print $2}'`
+
+#Current Uplink interface
+cur_uplink_inf=`iptables -t nat -vnL POSTROUTING | grep $DOWNLINK_SUBNET | awk '{print $7}'`
+
+#Initialise NAT or not
+
+if [ ! -n "$cur_uplink_inf" ]; then
+    iptables -A INPUT -i $DOWNLINK_DEV -j ACCEPT
+    if [ -n "$cur_gateway_inf" ] ; then 
+        iptables -t nat -A POSTROUTING -s $DOWNLINK_SUBNET -o $cur_gateway_inf -j MASQUERADE
+    fi
+    exit
+fi
+
+if [ $cur_uplink_inf != $cur_gateway_inf ] ; then
+   iptables -t nat -D POSTROUTING -s $DOWNLINK_SUBNET -o $cur_uplink_inf -j MASQUERADE
+   iptables -t nat -A POSTROUTING -s $DOWNLINK_SUBNET -o $cur_gateway_inf -j MASQUERADE
+fi
+
+  

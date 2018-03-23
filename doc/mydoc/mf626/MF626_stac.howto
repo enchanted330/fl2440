@@ -1,0 +1,275 @@
+=================
+1, When we plugin the ZTE MF626 WCDMA USB modem, the Linux kernel recognize it as a CD-ROM:
+  usb 1-2: new full-speed USB device number 6 using at91_ohci
+  scsi4 : usb-storage 1-2:1.0
+  scsi 4:0:0:0: CD-ROM            ZTE      USB SCSI CD-ROM  2.31 PQ: 0 ANSI: 2
+
+
+=================
+2. ZTE MF626 WCDMA modem usb_modeswitch configure file:
+~ >: cat /apps/etc/ppp/zte_mf626.conf
+# ZTE devices
+
+DefaultVendor=   0x19d2
+DefaultProduct=  0x2000
+
+TargetVendor=   0x19d2
+TargetProductList="0001,0002,0015,0016,0017,0031,0037,0052,0055,0063,0064,0066,0091,0108,0117,0128,0157,2002,2003"
+
+MessageContent="5553424312345678000000000000061e000000000000000000000000000000"
+MessageContent2="5553424312345679000000000000061b000000020000000000000000000000"
+MessageContent3="55534243123456702000000080000c85010101180101010101000000000000"
+
+NeedResponse=1
+
+
+=================
+3, Now we need use usb_modeswitch to switch the 3G USB modem to Modem(USB convert to seiral),
+  For usb_modeswitch use libusb, and libusb depends on the USB filesystem. So we must mount
+  it before we use usb_modeswitch, or it can not detect the USB device:
+
+  /apps/tools >: usb_modeswitch -c /apps/etc/ppp/zte_mf626.conf
+
+  Looking for target devices ...
+   No devices in target mode or class found
+  Looking for default devices ...
+   No devices in default mode found. Nothing to do. Bye.
+
+  /apps/tools >: export LIBUSB_DEBUG=1
+  /apps/tools >: echo $LIBUSB_DEBUG
+  1
+  /apps/tools >: usb_modeswitch -c zte_mf626.conf 
+
+  libusb:error [op_init] could not find usbfs
+  Looking for target devices ...
+   No devices in target mode or class found
+  Looking for default devices ...
+   No devices in default mode found. Nothing to do. Bye.
+
+=================
+4, So we can modify the /etc/fstab file and mount USB filesystem:
+ /apps/tools >: cat /etc/fstab 
+ # /etc/fstab: static file system information.
+ #
+ # <file system> <mount pt>     <type>   <options>         <dump> <pass>
+ /dev/root       /              ext2     rw,noauto         0      1
+ usbfs           /proc/bus/usb  usbfs    defaults          0      0
+ proc            /proc          proc     defaults          0      0
+ tmpfs           /dev           tmpfs    defaults          0      0
+ ramfs           /tmp           ramfs    defaults          0      0
+ sysfs           /sys           sysfs    defaults          0      0
+ /apps/tools >: mount -a
+ /apps/tools >: mount
+ rootfs on / type rootfs (rw)
+ /dev/root on / type ext2 (rw,relatime,errors=continue)
+ proc on /proc type proc (rw,relatime)
+ tmpfs on /dev type tmpfs (rw,relatime)
+ ramfs on /tmp type ramfs (rw,relatime)
+ sysfs on /sys type sysfs (rw,relatime)
+ devpts on /dev/pts type devpts (rw,relatime,mode=600)
+ /dev/mtdblock6 on /apps type jffs2 (rw,sync,noatime)
+ /dev/mtdblock7 on /info type jffs2 (ro,sync,noatime)
+ ubi1:data on /data type ubifs (rw,relatime)
+ usbfs on /proc/bus/usb type usbfs (rw,relatime)
+ /apps/tools >: ls /proc/bus/usb/
+ 001      devices
+
+
+=================
+5, Now we can use usb_modeswitch to switch the WCDMA USB Modem to modem mode:
+
+/apps/tools >: usb_modeswitch -c zte_mf626.conf 
+
+Looking for target devices ...
+ No devices in target mode or class found
+Looking for default devices ...
+   found matching product ID
+   adding device
+ Found device in default mode, class or configuration (1)
+Accessing device 006 on bus 001 ...
+Getting the current device configuration ...
+ OK, got current device configuration (1)
+Using first interface: 0x00
+Using endpoints 0x01 (out) and 0x81 (in)
+Inquiring device details; driver will be detached ...
+Looking for active driver ...
+ OK, driver found; name unknown, limitation of libusb1
+ OK, driver "unkown" detached
+
+SCSI inquiry data (for identification)
+-------------------------
+  Vendor String: ZTE     
+   Model String: USB SCSI CD-ROM 
+Revision String: 2.31
+-------------------------
+
+USB descriptusb 1-2: usbfs: process 1055 (usb_modeswitch) did not claim interface 0 before use
+ion data (for identification)
+-------------------------
+Manufacturer: ZTE,Incorporated
+     Product: ZTE CDMA Technologies MSM
+  Serial No.: 1234567890ABCDEF
+-------------------------
+Setting up communication with interface 0
+Using endpoint 0x01 for message sending ...
+Trying to send message 1 to endpoint 0x01 ...
+ OK, message successfully sent
+Reading the response to message 1 (CSW) ...
+ OK, response successfully read (13 bytes).
+Trying to send message 2 to endpoint 0x01 ...
+ OK, message successfully sent
+Reading the response to message 2 (CSW) ...
+ OK, response successfully read (13 bytes).
+Trying to send message 3 to endpoint 0x01 ...
+ OK, message successfully sent
+Reading the response to message 3 (CSW) ...
+ OK, response successfully read (0 bytes).
+Resetting response endpoint 0x81
+Resetting message endpoint 0x01
+ Device is gone, skipping any further commands
+-> Run lsusb to note any changes. Bye.
+
+=================
+6. Linux Kernel(linux-3.3/drivers/usb/serial/option.c) detect the three USB convert to 
+serial port device: ttyUSB0,ttyUSB1 and ttyUSB2. And ttyUSB0 can't reply AT command, for 
+it's just a diagnose port, and ttyUSB1, ttyUSB2 can reply AT command. But only ttyUSB2 
+can do PPP connection and ttyUSB1 can not.
+
+/apps/tools >: usb 1-2: USB disconnect, device number 6
+usb 1-2: new full-speed USB device number 7 using at91_ohci
+option 1-2:1.0: GSM modem (1-port) converter detected
+usb 1-2: GSM modem (1-port) converter now attached to ttyUSB0
+option 1-2:1.1: GSM modem (1-port) converter detected
+usb 1-2: GSM modem (1-port) converter now attached to ttyUSB1
+scsi5 : usb-storage 1-2:1.2
+option 1-2:1.3: GSM modem (1-port) converter detected
+usb 1-2: GSM modem (1-port) converter now attached to ttyUSB2
+scsi 5:0:0:0: Direct-Access     ZTE      MMC Storage      2.31 PQ: 0 ANSI: 2
+sd 5:0:0:0: [sda] Attached SCSI removable disk
+
+/apps/tools >: comport -d /dev/ttyUSB0
+at
+
+/apps/tools >: comport -d /dev/ttyUSB1
+aattee00
+
+OK
+at+cgmm
+
+MF626
+
+OK
+at+cgmr
+
+BD_TMOP673M3V1.0.1B07
+
+OK
+/apps/tools >: comport -d /dev/ttyUSB2
+at
+
+OK
+at+cgmm
+
+MF626
+
+OK
+at+creg?
+
++CREG: 0,1
+
+OK
+
+at
+
+OK
+
+/apps/tools >: ifup-ppp -d /dev/ttyUSB1 -a cmnet -u uid -p pid ppp10
++ pppd /dev/ttyUSB1 115200 name uid password pid unit 10 require-pap idle 86400 refuse-mschap refuse-mschap-v2 refuse-eap nodefaultroute updetach debug lcp-echo-failure 3 lcp-echo-interval 5 ipcp-accept-local ipcp-accept-remote ipcp-restart 50 modem crtscts noipdefault noauth novj noccp novjccomp lock connect /usr/sbin/chat -v -E -f /etc/ppp/gprs-chat
+Script /usr/sbin/chat -v -E -f /etc/ppp/gprs-chat finished (pid 1666), status = 0x6
+Connect script failed
++ route add default ppp10
+route: SIOCADDRT: No such device
+/apps/tools >: 
+
+/apps/tools >: ifup-ppp -d /dev/ttyUSB2 -a "cmnet" -u uid -p pid ppp10
++ pppd /dev/ttyUSB2 115200 name uid password pid unit 10 require-pap idle 86400 refuse-mschap refuse-mschap-v2 refuse-eap nodefaultroute updetach debug lcp-echo-failure 3 lcp-echo-interval 5 ipcp-accept-local ipcp-accept-remote ipcp-restart 50 modem crtscts noipdefault noauth novj noccp novjccomp lock connect /usr/sbin/chat -v -E -f /etc/ppp/gprs-chat
+ + requesting data connection
+  + connected
+  Script /usr/sbin/chat -v -E -f /etc/ppp/gprs-chat finished (pid 1641), status = 0x0
+  Serial connection established.
+  using channel 2
+  Using interface ppp10
+  Connect: ppp10 <--> /dev/ttyUSB2
+  sent [LCP ConfReq id=0x1 <asyncmap 0x0> <magic 0x3af42839> <pcomp> <accomp>]
+  rcvd [LCP ConfReq id=0x3 <asyncmap 0x0> <auth chap MD5> <magic 0x1b670c6> <pcomp> <accomp>]
+  sent [LCP ConfAck id=0x3 <asyncmap 0x0> <auth chap MD5> <magic 0x1b670c6> <pcomp> <accomp>]
+  rcvd [LCP ConfAck id=0x1 <asyncmap 0x0> <magic 0x3af42839> <pcomp> <accomp>]
+  sent [LCP EchoReq id=0x0 magic=0x3af42839]
+  rcvd [LCP DiscReq id=0x4 magic=0x1b670c6]
+  rcvd [CHAP Challenge id=0x1 <c2ec38c22c184027d404f3e0ac6dc272>, name = "UMTS_CHAP_SRVR"]
+  sent [CHAP Response id=0x1 <17e67961dcc2b91a6d3cbd40b9d32a84>, name = "uid"]
+  rcvd [LCP EchoRep id=0x0 magic=0x1b670c6 3a f4 28 39]
+  rcvd [CHAP Success id=0x1 ""]
+  CHAP authentication succeeded
+  CHAP authentication succeeded
+  sent [IPCP ConfReq id=0x1 <addr 0.0.0.0>]
+  rcvd [IPCP ConfReq id=0x0]
+  sent [IPCP ConfNak id=0x0 <addr 0.0.0.0>]
+  rcvd [IPCP ConfNak id=0x1 <addr 10.151.248.14>]
+  sent [IPCP ConfReq id=0x2 <addr 10.151.248.14>]
+  rcvd [IPCP ConfReq id=0x1]
+  sent [IPCP ConfAck id=0x1]
+  rcvd [IPCP ConfAck id=0x2 <addr 10.151.248.14>]
+  Could not determine remote IP address: defaulting to 10.64.64.74
+  local  IP address 10.151.248.14
+  remote IP address 10.64.64.74
+  + route add default ppp10
+
+/apps/tools >: ifconfig
+eth0      Link encap:Ethernet  HWaddr 00:E5:49:83:76:1A  
+          inet addr:192.168.1.175  Bcast:192.168.1.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:4827 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:4304 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:874646 (854.1 KiB)  TX bytes:493862 (482.2 KiB)
+          Interrupt:111 Base address:0x6000 
+
+eth1      Link encap:Ethernet  HWaddr 00:E5:49:83:76:1B  
+          inet addr:192.168.200.174  Bcast:192.168.200.255  Mask:255.255.255.0
+          UP BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+          Interrupt:21 Base address:0x4000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:18 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:18 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:1739 (1.6 KiB)  TX bytes:1739 (1.6 KiB)
+
+ppp10     Link encap:Point-to-Point Protocol  
+          inet addr:10.177.102.118  P-t-P:10.64.64.74  Mask:255.255.255.255
+          UP POINTOPOINT RUNNING NOARP MULTICAST  MTU:1500  Metric:1
+          RX packets:37 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:37 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:3 
+          RX bytes:1076 (1.0 KiB)  TX bytes:1256 (1.2 KiB)
+
+/apps/tools >: ping 4.2.2.2 -I ppp10
+PING 4.2.2.2 (4.2.2.2): 56 data bytes
+64 bytes from 4.2.2.2: seq=0 ttl=48 time=1066.891 ms
+64 bytes from 4.2.2.2: seq=1 ttl=48 time=537.386 ms
+64 bytes from 4.2.2.2: seq=2 ttl=48 time=1166.424 ms
+64 bytes from 4.2.2.2: seq=3 ttl=48 time=594.417 ms
+64 bytes from 4.2.2.2: seq=4 ttl=48 time=784.420 ms
+64 bytes from 4.2.2.2: seq=5 ttl=48 time=757.423 ms
+^C
+--- 4.2.2.2 ping statistics ---
+6 packets transmitted, 6 packets received, 0% packet loss
+round-trip min/avg/max = 537.386/817.826/1166.424 ms
+

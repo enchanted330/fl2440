@@ -1,0 +1,195 @@
++-------------------------------------------------------------------------------------------------------
++    Author:  GuoWenxue   Wuhan. Hubei Province. China
++ Connect:
++     Email:  <guowenxue@gmail.com>
++        QQ:  281143292
++     Skype:  kkernel
++
++ ChangeLog:
++   Version: 1.0.0 (Fri Jan 13 17:58:21 CST 2012)
++        a, Add howto build cross compiler for ARM920T(S3C2410,S3C2440,AT91RM9200), 
++           ARM926T(S3C2416, AT91SAM9260),ARM1176JZF-S(S3C6410) by buildroot-2011.11
++-------------------------------------------------------------------------------------------------------
+
+
+I, Build cross compiler for ARM920T, such as s3c2410, s3c2440, at91rm9200
+=======================
+
+1, Download follow source code to /opt/dl folder, or you can just only download buildroot-2011.11.tar.bz2
+   and when make the cross compiler, it will auto download them by itself. B.T.W, the "buildroot-2011.11-config_xxx" 
+   file is the buildroot configure file, which is custemed by me in current folder. I prefer to prepare them first here.
+
+[guowenxue@centos6 opt]$ pwd
+/opt
+[guowenxue@centos6 opt]$ ls
+dl
+[guowenxue@centos6 opt]$ ll -h dl
+total 84M
+-rw-r--r-- 1 guowenxue guowenxue  19M Aug 26 18:06 binutils-2.21.1.tar.bz2
+-rw-rw-r-- 1 guowenxue guowenxue  19K Jan 13 19:22 buildroot-2011.11-config_arm1176jzf-s
+-rw-rw-r-- 1 guowenxue guowenxue  19K Jan 13 19:22 buildroot-2011.11-config_arm920t
+-rw-r--r-- 1 guowenxue guowenxue  19K Jan 13 19:22 buildroot-2011.11-config_arm926t
+-rw-r--r-- 1 guowenxue guowenxue 1.7M Dec  1 07:27 buildroot-2011.11.tar.bz2
+-rw-r--r-- 1 guowenxue guowenxue 256K Jan 10  2011 ccache-3.1.4.tar.bz2
+-rw-r--r-- 1 guowenxue guowenxue  57M Jun 28  2011 gcc-4.3.6.tar.bz2
+-rw-r--r-- 1 guowenxue guowenxue 2.0M May  8  2011 gmp-5.0.2.tar.bz2
+-rw-r--r-- 1 guowenxue guowenxue 570K Aug 13 00:02 lzo-2.06.tar.gz
+-rw-r--r--. 1 guowenxue guowenxue 73577826 Jan  8  2011 linux-2.6.37.tar.bz2
+-rw-r--r-- 1 guowenxue guowenxue 1.2M Apr  4  2011 mpfr-3.0.1.tar.bz2
+-rw-r--r-- 1 guowenxue guowenxue 2.7M Jun  9  2011 uClibc-0.9.32.tar.bz2
+-rw-r--r-- 1 guowenxue guowenxue 475K Dec  2 13:50 zlib-1.2.5.tar.bz2
+
+2, Uncompess the buildroot-2011.11 packet and move the dl folder to buildroot
+
+[guowenxue@centos6 opt]$ tar -xjf dl/buildroot-2011.11.tar.bz2 
+[guowenxue@centos6 opt]$ mv dl/ buildroot-2011.11/
+
+3, Copy the buildroot-2011.11 default configulre files for ARM920T:
+ 
+[guowenxue@centos6 opt]$ cd buildroot-2011.11/
+[guowenxue@centos6 buildroot-2011.11]$ cp dl/buildroot-2011.11-config_arm920t .config
+
+4, For my default configure file can works fine, maybe you needn't do make menuconfig again. But I think U can 
+  check which cross compiler features I choosed.
+
+[guowenxue@centos6 buildroot-2011.11]$ export TERM=vt100
+[guowenxue@centos6 buildroot-2011.11]$ make menuconfig
+
+5, The last thing you need do is just type "make" command, it will start to build the cross compiler by Computer. 
+   It takes about 30 minutes to make it, which depends on your computer performance.
+
+[guowenxue@centos6 buildroot-2011.11]$ make
+
+6, After "make" successfully, it will output the cross compiler to: /opt/buildroot-2011.11/arm920t, 
+   the install path configured when "make menuconfig", or you can specify it in the configure file(.config):
+
+BR2_DL_DIR="$(TOPDIR)/dl"           #This is the source code packet download path
+BR2_HOST_DIR="$(TOPDIR)/arm920t"    #Cross compiler install path
+
+7, Then we can use follow command to check the cross compiler:
+
+[guowenxue@centos6 buildroot-2011.11]$ /opt/buildroot-2011.11/arm920t/usr/bin/arm-linux-gcc -v
+Using built-in specs.
+Target: arm-unknown-linux-uclibcgnueabi
+Configured with: /opt/buildroot-2011.11/output/toolchain/gcc-4.3.6/configure --prefix=/opt/buildroot-2011.11/arm920t/usr --build=x86_64-unknown-linux-gnu --host=x86_64-unknown-linux-gnu --target=arm-unknown-linux-uclibcgnueabi --enable-languages=c,c++ --with-sysroot=/opt/buildroot-2011.11/arm920t/usr/arm-unknown-linux-uclibcgnueabi/sysroot --with-build-time-tools=/opt/buildroot-2011.11/arm920t/usr/arm-unknown-linux-uclibcgnueabi/bin --disable-__cxa_atexit --enable-target-optspace
+--disable-libgomp --with-gnu-ld --disable-libssp --disable-multilib --disable-tls --disable-shared --with-gmp=/opt/buildroot-2011.11/arm920t/usr --with-mpfr=/opt/buildroot-2011.11/arm920t/usr --enable-threads --disable-decimal-float --with-float=soft --with-abi=aapcs-linux --with-arch=armv4t --with-tune=arm920t --with-pkgversion='Buildroot 2011.11' --with-bugurl=http://bugs.buildroot.net/
+Thread model: posix
+gcc version 4.3.6 (Buildroot 2011.11) 
+
+[guowenxue@centos6 ~]$ /opt/buildroot-2011.11/arm920t/usr/bin/arm-linux-gcc hello.c -o hello
+[guowenxue@centos6 ~]$ file hello
+hello: ELF 32-bit LSB executable, ARM, version 1 (SYSV), dynamically linked (uses shared libs), not stripped
+[guowenxue@centos6 ~]$ /opt/buildroot-2011.11/arm920t/usr/bin/arm-linux-gcc hello.c -o hello -static
+[guowenxue@centos6 ~]$ file hello
+hello: ELF 32-bit LSB executable, ARM, version 1 (SYSV), statically linked, not stripped
+
+
+II. Continue to build Cross compiler for ARM926T, such as AT91SAM9260, S3C2416.
+=======================
+
+   If we have build the cross compiler for the ARM920T as above illustrate, then we can continue to build 
+the cross compiler for ARM926T again as follow:
+
+1, Before we build the new cross compiler, we must use "make distclean" to clean the old object files, but make distcelan will 
+  remove the output compiler "arm920t" and "dl" folder, so we need use linux command "mv" to backup them first:
+[guowenxue@centos6 buildroot-2011.11]$ mv dl dl-bak
+[guowenxue@centos6 buildroot-2011.11]$ mv arm920t arm920t-bak
+[guowenxue@centos6 buildroot-2011.11]$ make distclean
+rm -rf /opt/buildroot-2011.11/arm926t/usr/arm-unknown-linux-uclibcgnueabi/sysroot /opt/buildroot-2011.11/output/target /opt/buildroot-2011.11/output/images /opt/buildroot-2011.11/arm926t \
+                /opt/buildroot-2011.11/output/stamps /opt/buildroot-2011.11/output/build /opt/buildroot-2011.11/output/toolchain /opt/buildroot-2011.11/output/staging
+                rm -rf /opt/buildroot-2011.11/dl
+                rm -rf output
+                rm -rf /opt/buildroot-2011.11/.config /opt/buildroot-2011.11/.config.old /opt/buildroot-2011.11/.auto.deps
+[guowenxue@centos6 buildroot-2011.11]$ ls
+arm920t-bak  board  boot  CHANGES  Config.in  configs  COPYING  dl-bak  docs  fs  linux  Makefile  package  support  target  toolchain
+
+2, Copy the buildroot default configure file here, and rename it to ".config" as the default confiugre file, then 
+  restore the "dl" and "arm920t" folder, then we can start to compile the new compiler again.
+
+[guowenxue@centos6 buildroot-2011.11]$ cp dl/buildroot-2011.11-config_arm926t .config
+[guowenxue@centos6 buildroot-2011.11]$ mv dl-bak/ dl
+[guowenxue@centos6 buildroot-2011.11]$ mv arm920t-bak/ arm920t
+
+[guowenxue@centos6 buildroot-2011.11]$ make
+[guowenxue@centos6 buildroot-2011.11]$ ls
+arm920t arm926t  board  boot  CHANGES  Config.in  configs  COPYING  dl  docs  fs  linux  Makefile  package  support  target  toolchain
+
+3, After make over, we can use follow command to check it:
+
+[guowenxue@centos6 buildroot-2011.11]$ /opt/buildroot-2011.11/arm926t/usr/bin/arm-linux-gcc -v
+Using built-in specs.
+Target: arm-unknown-linux-uclibcgnueabi
+Configured with: /opt/buildroot-2011.11/output/toolchain/gcc-4.3.6/configure --prefix=/opt/buildroot-2011.11/arm926t/usr --build=x86_64-unknown-linux-gnu --host=x86_64-unknown-linux-gnu --target=arm-unknown-linux-uclibcgnueabi --enable-languages=c,c++ --with-sysroot=/opt/buildroot-2011.11/arm926t/usr/arm-unknown-linux-uclibcgnueabi/sysroot --with-build-time-tools=/opt/buildroot-2011.11/arm926t/usr/arm-unknown-linux-uclibcgnueabi/bin --disable-__cxa_atexit --enable-target-optspace
+--disable-libgomp --with-gnu-ld --disable-libssp --disable-multilib --disable-tls --disable-shared --with-gmp=/opt/buildroot-2011.11/arm926t/usr --with-mpfr=/opt/buildroot-2011.11/arm926t/usr --enable-threads --disable-decimal-float --with-float=soft --with-abi=aapcs-linux --with-arch=armv5te --with-tune=arm926ej-s --with-pkgversion='Buildroot 2011.11' --with-bugurl=http://bugs.buildroot.net/
+Thread model: posix
+gcc version 4.3.6 (Buildroot 2011.11) 
+
+[guowenxue@centos6 ~]$ /opt/buildroot-2011.11/arm926t/usr/bin/arm-linux-gcc hello.c -o hello -static  
+[guowenxue@centos6 ~]$ file hello
+hello: ELF 32-bit LSB executable, ARM, version 1 (SYSV), statically linked, not stripped
+[guowenxue@centos6 ~]$ /opt/buildroot-2011.11/arm926t/usr/bin/arm-linux-gcc hello.c -o hello 
+[guowenxue@centos6 ~]$ file hello
+hello: ELF 32-bit LSB executable, ARM, version 1 (SYSV), dynamically linked (uses shared libs), not stripped
+
+
+
+III. Continue to build Cross compiler for ARM1176JZF-S, such as S3C6410.
+=======================
+
+   If we have build the cross compiler for the ARM926T as above illustrate, then we can continue to build 
+the cross compiler for ARM1176JZF-S again as follow:
+
+1, Before we build the new cross compiler, we must use "make distclean" to clean the old object files, but make distcelan will 
+  remove the output compiler "arm926t" and "dl" folder, so we need use linux command "mv" to backup them first:
+
+[guowenxue@centos6 buildroot-2011.11]$ mv dl dl-bak
+[guowenxue@centos6 buildroot-2011.11]$ mv arm926t arm926t-bak
+[guowenxue@centos6 buildroot-2011.11]$ make distclean
+rm -rf /opt/buildroot-2011.11/arm1176jzf-s/usr/arm-unknown-linux-uclibcgnueabi/sysroot /opt/buildroot-2011.11/output/target /opt/buildroot-2011.11/output/images /opt/buildroot-2011.11/arm1176jzf-s \
+                /opt/buildroot-2011.11/output/stamps /opt/buildroot-2011.11/output/build /opt/buildroot-2011.11/output/toolchain /opt/buildroot-2011.11/output/staging
+                rm -rf /opt/buildroot-2011.11/dl
+                rm -rf output
+                rm -rf /opt/buildroot-2011.11/.config /opt/buildroot-2011.11/.config.old /opt/buildroot-2011.11/.auto.deps
+
+2, Copy the buildroot default configure file here, and rename it to ".config" as the default confiugre file, then 
+  restore the "dl" and "arm926t" folder, then we can start to compile the new compiler again.
+
+[guowenxue@centos6 buildroot-2011.11]$ cp dl/buildroot-2011.11-config_arm1176jzf-s .config
+[guowenxue@centos6 buildroot-2011.11]$ mv dl-bak/ dl
+[guowenxue@centos6 buildroot-2011.11]$ mv arm926t-bak/ arm926t
+
+[guowenxue@centos6 buildroot-2011.11]$ make
+[guowenxue@centos6 buildroot-2011.11]$ ls
+arm1176jzf-s arm920t arm926t  board  boot  CHANGES  Config.in  configs  COPYING  dl  docs  fs  linux  Makefile  package  support  target  toolchain
+
+
+3, After make over, remove unused temple file
+[guowenxue@centos6 buildroot-2011.11]$ mv arm1176jzf-s/ arm1176jzf-s-bak
+[guowenxue@centos6 buildroot-2011.11]$ make distclean
+rm -rf /opt/buildroot-2011.11/arm1176jzf-s/usr/arm-unknown-linux-uclibcgnueabi/sysroot /opt/buildroot-2011.11/output/target /opt/buildroot-2011.11/output/images /opt/buildroot-2011.11/arm1176jzf-s \
+                /opt/buildroot-2011.11/output/stamps /opt/buildroot-2011.11/output/build /opt/buildroot-2011.11/output/toolchain /opt/buildroot-2011.11/output/staging
+                rm -rf /opt/buildroot-2011.11/dl
+                rm -rf output
+                rm -rf /opt/buildroot-2011.11/.config /opt/buildroot-2011.11/.config.old /opt/buildroot-2011.11/.auto.deps
+[guowenxue@centos6 buildroot-2011.11]$ mv arm1176jzf-s-bak/ arm1176jzf-s
+
+
+4, we can use follow command to check it:
+
+[guowenxue@centos6 buildroot-2011.11]$ /opt/buildroot-2011.11/arm1176jzf-s/usr/bin/arm-linux-gcc -v
+Using built-in specs.
+Target: arm-unknown-linux-uclibcgnueabi
+Configured with: /opt/buildroot-2011.11/output/toolchain/gcc-4.3.6/configure --prefix=/opt/buildroot-2011.11/arm1176jzf-s/usr --build=x86_64-unknown-linux-gnu --host=x86_64-unknown-linux-gnu --target=arm-unknown-linux-uclibcgnueabi --enable-languages=c,c++ --with-sysroot=/opt/buildroot-2011.11/arm1176jzf-s/usr/arm-unknown-linux-uclibcgnueabi/sysroot --with-build-time-tools=/opt/buildroot-2011.11/arm1176jzf-s/usr/arm-unknown-linux-uclibcgnueabi/bin --disable-__cxa_atexit
+--enable-target-optspace --disable-libgomp --with-gnu-ld --disable-libssp --disable-multilib --disable-tls --disable-shared --with-gmp=/opt/buildroot-2011.11/arm1176jzf-s/usr --with-mpfr=/opt/buildroot-2011.11/arm1176jzf-s/usr --enable-threads --disable-decimal-float --with-float=soft --with-abi=aapcs-linux --with-arch=armv6zk --with-tune=arm1176jzf-s --with-pkgversion='Buildroot 2011.11' --with-bugurl=http://bugs.buildroot.net/
+Thread model: posix
+gcc version 4.3.6 (Buildroot 2011.11)
+
+
+[guowenxue@centos6 ~]$ /opt/buildroot-2011.02/arm1176jzf-s/usr/bin/arm-linux-gcc hello.c -o hello
+[guowenxue@centos6 ~]$ file hello
+hello: ELF 32-bit LSB executable, ARM, version 1 (SYSV), dynamically linked (uses shared libs), not stripped
+[guowenxue@centos6 ~]$ /opt/buildroot-2011.02/arm1176jzf-s/usr/bin/arm-linux-gcc hello.c -o hello -static
+[guowenxue@centos6 ~]$ file hello
+hello: ELF 32-bit LSB executable, ARM, version 1 (SYSV), statically linked, not stripped
+
+

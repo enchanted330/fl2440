@@ -1,0 +1,230 @@
+# .bashrc
+
+# User specific aliases and functions
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+	. /etc/bashrc
+fi
+
+JAVA_HOME=/usr/jdk1.6.0_30/
+PATH=$JAVA_HOME/bin:$PATH
+CLASSPATH=$JAVA_HOME/lib/tools.jar:$JAVA_HOME/lib/dt.jar:$CLASSPATH
+
+PATH=$PATH:/opt/buildroot-2012.08/arm920t/usr/bin
+PS1='[\u@\h \W]\$ '
+export LANG=en_US.UTF8
+set -o vi
+alias gitco='git checkout'
+alias gitci='git commit'
+alias vt100='export TERM=vt100'
+alias linux='export TERM=linux'
+alias maek='make'
+alias rmsvn='find -name .svn -exec rm -rf {} \;'
+#alias rmgdb='find -iname "*.gdb" -exec rm -rf {} \;'
+#alias rmobj='find -iname "*.o" -exec rm -rf {} \;'
+#alias rmdep='find -name .depend -exec rm -rf {} \;'
+alias myvalgrind='valgrind --track-fds=yes --leak-check=full --leak-resolution=high --track-origins=yes -v '
+alias myindent='indent -npro -kr -i4 -ts4 -bls -bl -bli0 -cli2 -ss -bap -sc -sob -l100 -ncs -nce -nut'
+alias tag='cscope -Rbq && ctags --c-kinds=+defglmnstuvx --langmap=c:.c.h.ho.hem.het.hec.hev.him.hit.hic.hiv -R .'
+alias tagclean='rm -f cscope.* tags'
+alias nocvim='mv ~/.vimrc ~/.vimrcb'
+alias cvim='mv ~/.vimrcb ~/.vimrc'
+
+# Description:  This function used to remove some specified files in current folder
+#      Author:  Guo Wenxue(guowenxue@gmail.com)
+#     Version:  1.0.0 (Release by guowenxue on 26th Fri. 2011)
+
+function erm ()
+{
+   if [ -z $1 ]; then
+      echo "This function used to remove some specified files in current folder"
+      echo "Usage: $FUNCNAME [express]"
+      echo "Example: $FUNCNAME *.gdb"
+      return;
+   fi
+
+   express=$1
+   find -iname "$express" -exec rm -rf {} \;
+}
+alias rmsvn='erm .svn'
+
+
+# Description:  This function used to uncompress the packets according to the packet name
+#      Author:  Guo Wenxue(guowenxue@gmail.com)
+#     Version:  1.0.0 (Release by guowenxue on 26th Fri. 2011)
+
+function ex () 
+{
+  if [ -f $1 ] ; then
+    case $1 in
+      *.tar.bz2)   tar xjf $1        ;;
+      *.tar.gz)    tar xzf $1     ;;
+      *.bz2)       bunzip2 $1       ;;
+      *.rar)       rar x $1     ;;
+      *.gz)        gunzip $1     ;;
+      *.tar)       tar xf $1        ;;
+      *.tbz2)      tar xjf $1      ;;
+      *.tgz)       tar xzf $1       ;;
+      *.zip)       unzip $1     ;;
+      *.Z)         uncompress $1  ;;
+      *.7z)        7z x $1    ;;
+      *)           echo "'$1' cannot be extracted via extract()" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+# Description:  This function used to format all the source code in current forlder
+#               and convert source code file format from windows to linux
+#      Author:  Guo Wenxue(guowenxue@gmail.com)
+#     Version:  1.0.0 (Release by guowenxue on 18th Fri. 2010)
+
+function format_src ()
+{
+
+  find -iname "*.c" -exec dos2unix {} \;
+  find -iname "*.h" -exec dos2unix {} \;
+  find -iname "makefile" -exec dos2unix {} \;
+  find -iname "Makefile" -exec dos2unix {} \;
+
+  # -npro   不要读取indent的配置文件.indent.pro
+  # -kr     使用Kernighan&Ritchie的格式
+  # -i4     设置缩排的格数为4
+  # -di28   将声明区段的变量置于指定的栏位(28) 
+  # -ts4    设置tab的长度为4 
+  # -bls    定义结构，"struct"和"{"分行
+  # -bl     if(或是else,for等等)与后面执行区段的”{“不同行，且”}”自成一行。
+  # -bli0   设置{ }缩排的格数为0 
+  # -cli2   使用case时，switch缩排的格数
+  # -ss     若for或whiile区段只有一行时，在分号前加上空格
+  # -bad    在声明区段后加上空白行
+  # -bbb    块注释前加空行
+  # -bap    函数结束后加空行
+  # -sc     在每行注释左侧加上星号(*)。
+  # -bc     在声明区段中，若出现逗号即换行。
+  # -sob    删除多余的空白行
+  # -l100   非注释行最长100
+  # -ncs    不要在类型转换后面加空格
+  # -nce    不要将else置于”}”之后
+  # -nut    不要使用tab来缩进
+
+  INDET_FORMAT="-npro -kr -i4 -ts4 -bls -bl -bli0 -cli2 -ss -bap -sc -sob -l100 -ncs -nce -nut"
+
+  find -iname "*.c" -exec indent $INDET_FORMAT {} \;
+  find -iname "*.h" -exec indent $INDET_FORMAT {} \;
+
+  find -iname "*.h~" | xargs rm -rf {} \;
+  find -iname "*.c~" | xargs rm -rf {} \;
+}
+
+
+# Description:  This function used to grep the "key" in all the files in current folder.
+#      Author:  GuoWenxue<guowenxue@gmail.com>
+#     Version:  1.0.0 (Release by guowenxue on 04th Feb. 2010)
+# 
+
+function mygrep ( )
+{
+  if [ $# -lt 1 ] ; then
+      echo "   Usage: $FUNCNAME key [-g] [suffix]"
+      echo "Example1: mygrep haha"
+      echo "Example2: mygrep haha -g"
+      echo "Example3: mygrep haha *.c"
+      echo "Example4: mygrep haha -g *.c"
+      return
+  fi
+
+  key=$1         #The grep key
+
+  if [ $# = 1 ] ; then
+      grep -n "$key" -r *
+
+  elif [ $# = 2 ] ; then
+      if [ $2 = "-g" ] ; then
+         grep -n "\<$key\>" -r *
+      else
+         suffix=$2
+         find -iname "$suffix" | xargs grep -n "$key"
+      fi
+  else # Arguments more than 3
+
+      if [ $2 = "-g" ] ; then
+             suffix=$3
+
+      elif [ $3 = "-g" ]; then
+             suffix=$2
+      fi
+
+      find -iname "$suffix" | xargs grep -n "\<$key\>"
+  fi
+}
+
+
+# Description:  This function used to generate the APM(ARM Packet Manager) file
+#      Author:  GuoWenxue<guowenxue@gmail.com>
+#     Version:  1.0.0 (Release by guowenxue on 11st Jun. 2012)
+
+function apm_gen ()
+{
+  path=`pwd`
+  folder=`basename $path`
+  apm_name=${folder}.apm
+
+  if [ ! -s patch.sh ] ; then 
+     echo "Miss patch.sh file, not APM file? exit now..."
+     return;
+  fi
+
+  #first, compress these sub folders and name them as ${foldername}.apm
+  for i in N??*; do
+       tar -czf $i.apm $i
+       rm -rf $i
+  done
+
+  #second, generate the final APM file
+  cd ..
+  tar -czf $apm_name ${folder}
+  rm -rf $folder
+}
+
+
+# Description:  This function used to uncompress the APM(ARM Packet Manager) file
+#      Author:  GuoWenxue<guowenxue@gmail.com>
+#     Version:  1.0.0 (Release by guowenxue on 11st Jun. 2012)
+# 
+
+function apm_uncmp ()
+{
+  if [ $# -ne 1 ]; then
+      echo "This function used to uncompress the APM file"
+      echo "Usage:   $FUNCNAME \"apm_path\"             "
+      return;
+  fi
+
+  apm_path=$1
+  apm_name=`basename ${apm_path}`
+  work_path=`echo ${apm_name}|awk -F '.' '{print   $1}'`
+
+
+  # Uncompress the TOP APM file
+  tar -xzf $apm_path 
+
+  if [ ! -d  $work_path ];then
+      echo "===================================================================="
+      echo "*  ERROR: Uncompress failure, make sure the file is tar.gz format  *"
+      echo "===================================================================="
+      echo ""
+      return;
+  fi
+
+  # Goes into the folder and uncompress the child NUP file one by one.
+  cd $work_path
+
+  for i in *.apm; do
+      tar -xzf $i
+      rm -f $i
+  done
+}
+

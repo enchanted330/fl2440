@@ -1,0 +1,32 @@
+Hardware:
+           CPU:   S3C2440 (400MHz)
+         SDRAM:   64MB  K4S561632N
+     Nandflash:   256MB K9F2G08
+      Norflash:   4MB   JS28F320
+  USB 2 Serial:   PL2303(support)
+           WiFI:  RT2070(AP and Station mode both support)
+       Ethernet:  DM9000 aviable
+         USB/SD:  Aviable
+LCD/TouchScreen:  Aviable
+            RTC:  Aviable
+
+Software:
+     bootloader:  u-boot-2010.09
+          Linux:  Linux-3.3
+         Rootfs:  Cramfs/ramdisk+ext2/initramfs/jffs2/uibifs
+      webserver:  appweb+php
+        Port QT:  QT library avialbe
+          RS232:  Serial port communication library aviable
+         TCP/IP:  TCP/IP Socket program library avialbe
+         SQLite:  SQLite library aviable
+           SSH2:  Aviable
+
+
+J5跳线帽子设置OM0:
+如果J5短接(OM1=0 OM0=0)则设置从Nandflash启动;
+如果J5不短接(OM1=0, OM0=1),则设置从Norflash 16-bit模式启动；
+
+J2跳线帽子设置Norflash是连到NGCS1还是NGCS0上:
+如果跳到0上，则Norflash地址为0x0000 0000;
+如果跳到1上，则Norflash地址为0x0800 0000;
+   

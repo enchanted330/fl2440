@@ -1,0 +1,21 @@
+#
+# The default client certificate generation policy.
+#
+[ req ]
+prompt                  = no
+distinguished_name      = req_distinguished_name
+#
+#
+# Root Certificate Authority distinguished name.  Change these fields to match
+# your local environment!
+#
+[  req_distinguished_name ]
+commonName = hammerhead
+organizationName = CoherentPlus BHD
+organizationalUnitName = Research and Development
+emailAddress = enquiry@coherentplus.com
+
+countryName         = CN
+stateOrProvinceName = HuBei
+localityName    = WuHan
+

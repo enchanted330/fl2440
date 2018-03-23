@@ -1,0 +1,55 @@
+diff -Nuar hostapd-0.7.3/src/ap/ieee802_11.c hostapd-0.7.3-new/src/ap/ieee802_11.c
+--- hostapd-0.7.3/src/ap/ieee802_11.c	2010-09-07 23:43:39.000000000 +0800
++++ hostapd-0.7.3-new/src/ap/ieee802_11.c	2011-12-27 09:03:30.739686867 +0800
+@@ -1005,6 +1005,7 @@
+ 		       "association OK (aid %d)", sta->aid);
+ 	/* Station will be marked associated, after it acknowledges AssocResp
+ 	 */
++    sta->flags |= WLAN_STA_ASSOC_REQ_OK;  /* Add by guowenxue, 2011.12.27 */
+ 
+ #ifdef CONFIG_IEEE80211W
+ 	if ((sta->flags & WLAN_STA_MFP) && sta->sa_query_timed_out) {
+@@ -1061,7 +1062,7 @@
+ 		return;
+ 	}
+ 
+-	sta->flags &= ~WLAN_STA_ASSOC;
++    sta->flags &= ~(WLAN_STA_ASSOC | WLAN_STA_ASSOC_REQ_OK); /* Add by guowenxue, 2011.12.27 */
+ 	wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_DISCONNECTED MACSTR,
+ 		MAC2STR(sta->addr));
+ 	wpa_auth_sm_event(sta->wpa_sm, WPA_DISASSOC);
+@@ -1111,7 +1112,7 @@
+ 		return;
+ 	}
+ 
+-	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC);
++	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC | WLAN_STA_ASSOC_REQ_OK); /* Modify by guowenxue, 2011.12.27 */
+ 	wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_DISCONNECTED MACSTR,
+ 		MAC2STR(sta->addr));
+ 	wpa_auth_sm_event(sta->wpa_sm, WPA_DEAUTH);
+@@ -1739,6 +1740,14 @@
+ 		return;
+ 	}
+ 
++    if (sta && (sta->flags & WLAN_STA_ASSOC_REQ_OK)) { /* Add by guowenxue, 2011.12.27 */
++               wpa_printf(MSG_DEBUG, "Association Response to the STA has "
++                          "already been sent, but no TX status yet known - "
++                          "ignore Class 3 frame issue with " MACSTR,
++                          MAC2STR(src));
++               return;
++    }
++
+ 	wpa_printf(MSG_DEBUG, "Data/PS-poll frame from not associated STA "
+ 		   MACSTR, MAC2STR(src));
+ 	if (sta && (sta->flags & WLAN_STA_AUTH))
+diff -Nuar hostapd-0.7.3/src/ap/sta_info.h hostapd-0.7.3-new/src/ap/sta_info.h
+--- hostapd-0.7.3/src/ap/sta_info.h	2010-09-07 23:43:39.000000000 +0800
++++ hostapd-0.7.3-new/src/ap/sta_info.h	2011-12-27 09:04:01.954688993 +0800
+@@ -31,6 +31,7 @@
+ #define WLAN_STA_WPS BIT(12)
+ #define WLAN_STA_MAYBE_WPS BIT(13)
+ #define WLAN_STA_WDS BIT(14)
++#define WLAN_STA_ASSOC_REQ_OK BIT(15) /* Add by guowenxue, 2011.12.27 */
+ #define WLAN_STA_NONERP BIT(31)
+ 
+ /* Maximum number of supported rates (from both Supported Rates and Extended

@@ -1,0 +1,56 @@
+diff -Nuar luvcview-20070512/luvcview.c luvcview-20070512-arm/luvcview.c
+--- luvcview-20070512/luvcview.c	2007-05-12 18:03:14.000000000 +0800
++++ luvcview-20070512-arm/luvcview.c	2015-11-16 20:19:56.371970086 +0800
+@@ -41,7 +41,7 @@
+ #include <time.h>
+ #include <sys/time.h>
+ #include <signal.h>
+-#include <X11/Xlib.h>
++//#include <X11/Xlib.h>
+ #include <SDL/SDL_syswm.h>
+ #include "v4l2uvc.h"
+ #include "gui.h"
+@@ -53,7 +53,7 @@
+ #define TO_FIXED(X) (((Sint32)(X))<<(FIXED_BITS))
+ #define FROM_FIXED(X) (((Sint32)(X))>>(FIXED_BITS))
+ 
+-#define INCPANTILT 64 // 1°
++#define INCPANTILT 64 // 1?
+ 
+ typedef enum action_gui {
+ /* 0..7..15 action top */
+diff -Nuar luvcview-20070512/Makefile luvcview-20070512-arm/Makefile
+--- luvcview-20070512/Makefile	2007-05-12 17:57:17.000000000 +0800
++++ luvcview-20070512-arm/Makefile	2015-11-16 20:19:56.371970086 +0800
+@@ -3,14 +3,15 @@
+ ##############################
+ 
+ INSTALLROOT=$(PWD)
++PROJ_PATH=$(PWD)
+ 
+-CC=gcc
+-CPP=g++
++CC=/opt/buildroot-2012.08/arm920t/usr/bin/arm-linux-gcc
++CPP=/opt/buildroot-2012.08/arm920t/usr/bin/arm-linux-g++
+ INSTALL=install
+ APP_BINARY=luvcview
+ BIN=/usr/local/bin
+-SDLLIBS = $(shell sdl-config --libs) 
+-SDLFLAGS = $(shell sdl-config --cflags)
++SDLLIBS = -L${PROJ_PATH}/../install/lib -lSDL -lpthread -static
++SDLFLAGS =${PROJ_PATH}/../install/include/
+ #LIBX11FLAGS= -I/usr/X11R6/include -L/usr/X11R6/lib
+ VERSION = 0.2.1
+ 
+diff -Nuar luvcview-20070512/utils.c luvcview-20070512-arm/utils.c
+--- luvcview-20070512/utils.c	2007-05-12 18:13:11.000000000 +0800
++++ luvcview-20070512-arm/utils.c	2015-11-16 21:15:47.005966382 +0800
+@@ -235,7 +235,7 @@
+ 	    break;
+ 
+ 	case M_DRI:
+-	printf("find DRI \n");
++	//printf("find DRI \n");
+ 	    l = getword();
+ 	    info.dri = getword();
+ 	    break;

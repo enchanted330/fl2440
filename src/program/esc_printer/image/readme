@@ -1,0 +1,11 @@
+1, Convert the picture from other format to BMP format(monochrome mode and color depth set to be:1 ):
+  convert -depth 1 -resize 160x113! -monochrome logo.png logo.bmp
+  
+2, Run Image2Lcd tool to get BMP image data buffer(gImage_logo) in logo.h, Image2Lcd configure as:
+  Output data type :  "C language Array(*.c)"
+  Scan mode        :  "Horizontal scan"
+  Output gray scale:  "Single color"
+  Don't select "Contains Image head information data"
+
+  Hit "Save" it will generate "logo.h" file
+   

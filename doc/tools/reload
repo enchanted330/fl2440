@@ -1,0 +1,25 @@
+#!/bin/sh
+#    Copyright:  (C) 2011 Guo Wenxue<guowenxue@gmail.com>  
+#                All rights reserved.
+#
+#  Description:  This shell script used to download the driver by tftp(in busybox) 
+#                and reinstall it 
+#      Version:  1.0.0(12/16/2011~)
+#                Author:  Guo Wenxue <guowenxue@gmail.com>
+ 
+server=192.168.200.160
+
+if [ $# -eq 1 ] ; then
+# awk used to remove the '.ko' suffix
+   module=$(echo $1 |awk -F '.' '{ print $1 }' )
+elif [ $# -eq 2 ] ; then
+   module=$(echo $1 |awk -F '.' '{ print $1 }' )
+   server=$2 
+else   
+   echo "Usage: $0 ModuleName [ServerIP]"
+   exit
+fi
+              
+set -x              
+tftp -gr $module.ko $server
+rmmod $module && insmod $module.ko

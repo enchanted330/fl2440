@@ -1,0 +1,91 @@
+diff -Nuar u-boot-2010.09/board/lingyun/fl2440/fl2440.c u-boot-2010.09-4-linux/board/lingyun/fl2440/fl2440.c
+--- u-boot-2010.09/board/lingyun/fl2440/fl2440.c	2015-11-16 13:35:08.196993893 +0800
++++ u-boot-2010.09-4-linux/board/lingyun/fl2440/fl2440.c	2015-11-16 13:42:01.101997521 +0800
+@@ -132,8 +132,8 @@
+ 	gpio->GPHCON = 0x002AFAAA;
+ 	gpio->GPHUP = 0x000007FF;
+ 
+-	/* arch number of SMDK2410-Board */
+-	gd->bd->bi_arch_number = MACH_TYPE_SMDK2410;
++	/* arch number of MINI2440-Board */
++	gd->bd->bi_arch_number = MACH_TYPE_MINI2440; /* Modify by guowenxue  */
+ 
+ 	/* adress of boot parameters */
+ 	gd->bd->bi_boot_params = 0x30000100;
+diff -Nuar u-boot-2010.09/common/env_common.c u-boot-2010.09-4-linux/common/env_common.c
+--- u-boot-2010.09/common/env_common.c	2010-09-29 05:20:55.000000000 +0800
++++ u-boot-2010.09-4-linux/common/env_common.c	2015-11-16 13:53:40.179995044 +0800
+@@ -59,6 +59,30 @@
+ #ifdef	CONFIG_BOOTCOMMAND
+ 	"bootcmd="	CONFIG_BOOTCOMMAND		"\0"
+ #endif
++#ifdef CONFIG_BBL_COMMAND /* Add by guowenxue, burn u-boot image */
++   "bbl="  CONFIG_BBL_COMMAND      "\0"
++#endif
++#ifdef CONFIG_BLX_COMMAND /* Add by guowenxue, burn linux kernel image */
++   "blx="  CONFIG_BLX_COMMAND      "\0"
++#endif
++#ifdef CONFIG_BARGS_INITRAMFS /* Add by guowenxue, bootargs for initramfs rootfs  */
++   "bargs_initramfs="   CONFIG_BARGS_INITRAMFS     "\0"
++#endif
++#ifdef CONFIG_BURN_UBIFS   /* Add by guowenxue, burn UBIFS root filesystem image */
++    "bubifs=" CONFIG_BURN_UBIFS "\0" 
++#endif 
++#ifdef CONFIG_BARGS_UBIFS /* Add by guowenxue, bootargs for ubifs rootfs  */
++   "bargs_ubifs="   CONFIG_BARGS_UBIFS     "\0"
++#endif
++#ifdef CONFIG_BURN_JFFS2   /* Add by guowenxue, burn JFFS2 root filesystem image */
++    "bjffs2=" CONFIG_BURN_JFFS2 "\0" 
++#endif
++#ifdef CONFIG_BARGS_JFFS2 /* Add by guowenxue, bootargs for jffs2 rootfs  */
++   "bargs_jffs2="   CONFIG_BARGS_JFFS2     "\0"
++#endif
++#ifdef CONFIG_TFTPBOOT_COMMAND /* Add by guowenxue, tftp boot linux system */
++   "tb="   CONFIG_TFTPBOOT_COMMAND     "\0"
++#endif
+ #ifdef	CONFIG_RAMBOOTCOMMAND
+ 	"ramboot="	CONFIG_RAMBOOTCOMMAND		"\0"
+ #endif
+diff -Nuar u-boot-2010.09/include/configs/fl2440.h u-boot-2010.09-4-linux/include/configs/fl2440.h
+--- u-boot-2010.09/include/configs/fl2440.h	2015-11-16 13:37:57.298995667 +0800
++++ u-boot-2010.09-4-linux/include/configs/fl2440.h	2015-11-16 13:59:13.913995331 +0800
+@@ -112,6 +112,20 @@
+ #define CONFIG_IPADDR       192.168.1.168
+ #define CONFIG_SERVERIP     192.168.1.2
+ 
++
++#define CONFIG_BBL_COMMAND     "tftp 30008000 u-boot-s3c2440.bin;nand erase 0 100000;nand write 30008000 0 60000"
++#define CONFIG_BLX_COMMAND     "tftp 30008000 linuxrom-s3c2440.bin;nand erase 100000 F00000;nand write 30008000 100000 D00000"
++#define CONFIG_TFTPBOOT_COMMAND "tftp 30008000 linuxrom-s3c2440.bin; bootm 30008000"
++#define CONFIG_BURN_JFFS2      "tftp 30800000 jffs2-$cpu.rootfs;nand erase 1000000 4000000;nand write 30800000 3800000 $filesize"
++#define CONFIG_BURN_UBIFS      "tftp 30800000 ubifs-$cpu.rootfs;nand erase 1000000 4000000;nand write 30800000 8800000 $filesize"
++
++
++#define CONFIG_BARGS_INITRAMFS  "console=ttyS0,115200 mem=64M rw loglevel=7"
++#define CONFIG_BARGS_JFFS2      "console=ttyS0,115200 root=/dev/mtdblock2 rootfstype=jffs2 init=/linuxrc mem=64M rw noinitrd loglevel=7"
++#define CONFIG_BARGS_UBIFS      "console=ttyS0,115200 ubi.mtd=2 root=ubi0:rootfs rootwait rootfstype=ubifs init=/linuxrc mem=64M noinitrd rw loglevel=7"
++#define CONFIG_BOOTARGS        CONFIG_BARGS_INITRAMFS
++#define CONFIG_BOOTCOMMAND     "nand read 30008000 100000 D00000; bootm 30008000"
++
+ #if defined(CONFIG_CMD_KGDB)
+ #define CONFIG_KGDB_BAUDRATE	115200		/* speed to run kgdb serial port */
+ /* what's this ? it's not used anywhere */
+@@ -207,4 +221,18 @@
+ #define CONFIG_ENV_SIZE         0x20000 /* Total Size of Environment Sector */ 
+ #endif  /*   CONFIG_CMD_NAND */ 
+ 
++#define CONFIG_SETUP_MEMORY_TAGS
++#define CONFIG_INITRD_TAG
++#define CONFIG_CMDLINE_TAG
++
++#define CONFIG_SYS_HUSH_PARSER
++#define CONFIG_SYS_PROMPT_HUSH_PS2   "> "
++
++#define CONFIG_CMDLINE_EDITING
++#ifdef CONFIG_CMDLINE_EDITING
++#undef CONFIG_AUTO_COMPLETE
++#else
++#define CONFIG_AUTO_COMPLETE
++#endif
++
+ #endif	/* __CONFIG_H */

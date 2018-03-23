@@ -1,0 +1,79 @@
+These program used to write a sample code to demonstrate how to write a socket
+server/client program.
+
+Part I: Source Code
+--------------------------------
+[guowenxue@centos6 unp]$ ls
+makefile  date_time_client.c  date_time_server.c
+
+
+Part II: Compile for I386
+--------------------------------
+[guowenxue@centos6 unp]$ make 
+=========================================================
+**        Compile "date_time_client date_time_server" for i386         
+=========================================================
+gcc -o date_time_client date_time_client.c -Wall -Werror -DPRODUCTION_MODE -g -DDEBUG -I/usr/local/.guowenxue/embededproject-code/program/unp --static
+gcc -o date_time_server date_time_server.c -Wall -Werror -DPRODUCTION_MODE -g -DDEBUG -I/usr/local/.guowenxue/embededproject-code/program/unp --static
+Compile over
+cp date_time_client date_time_server /tftp
+
+
+Part III: Running
+--------------------------------
+
+
+1, Use one SSH connection run the Server program:
+[guowenxue@centos6 unp]$ ls
+makefile  date_time_client  date_time_client.c  date_time_server  date_time_server.c  version.h
+[guowenxue@centos6 unp]$ ./date_time_server 
+Another Usage: ./date_time_server [ServerPort]
+./date_time_server server start to listen port 8888
+
+
+2, Use another SSH connection to run the Client Program:
+First, We can use ifconfig to check all the IP address bind to our Linux Server
+---------------------------------
+[guowenxue@centos6 unp]$ ifconfig
+eth0      Link encap:Ethernet  HWaddr 50:E5:49:83:76:1C  
+          inet addr:192.168.1.78  Bcast:192.168.1.255  Mask:255.255.255.0
+          inet6 addr: fe80::52e5:49ff:fe83:761c/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:232430 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:109120 errors:0 dropped:0 overruns:0 carrier:1
+          collisions:0 txqueuelen:1000 
+          RX bytes:56625675 (54.0 MiB)  TX bytes:45018894 (42.9 MiB)
+          Interrupt:31 
+
+eth0:1    Link encap:Ethernet  HWaddr 50:E5:49:83:76:1C  
+          inet addr:192.168.200.78  Bcast:192.168.200.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:31 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:46651 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:46651 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:28060196 (26.7 MiB)  TX bytes:28060196 (26.7 MiB)
+
+Now we can running the client program, to connect to the server to get date time,
+For in the server program, we use:
+servaddr.sin_addr.s_addr = htonl(INADDR_ANY);  /* Listen all the local IP address */
+So we use all the IP address can get the date time
+
+---------------------------------
+[guowenxue@centos6 unp]$ ./date_time_client 192.168.1.78
+Connect to Server [192.168.1.78:8888]
+Get Time from server 192.168.1.78:   Fri Jun  8 16:37:00 2012
+
+[guowenxue@centos6 unp]$ ./date_time_client 192.168.200.78
+Connect to Server [192.168.200.78:8888]
+Get Time from server 192.168.200.78:   Fri Jun  8 16:37:06 2012
+
+[guowenxue@centos6 unp]$ ./date_time_client 127.0.0.1
+Connect to Server [127.0.0.1:8888]
+Get Time from server 127.0.0.1:   Fri Jun  8 16:37:14 2012
+

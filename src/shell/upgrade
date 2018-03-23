@@ -1,0 +1,161 @@
+#!/bin/sh
+#This shell scripts used to update the u-boot linux kernel, root file system image when Linux running
+
+erase_cmd=/usr/sbin/flash_eraseall
+write_cmd=/usr/sbin/nandwrite
+cu_version=`cat /proc/version`
+PROG_NAME=`basename $0`
+IMAGE_TYPE=
+ROOTFS_TYPE=
+
+usage()
+{
+  echo "  Usage:   $PROG_NAME -[f/k/u] [filename]"
+  echo "Example:   $PROG_NAME  linuxrom-s3c2440.bin"
+  echo "           $PROG_NAME  u-boot-s3c2440.bin"
+  echo "           $PROG_NAME  rootfs.jffs2"
+  echo "           $PROG_NAME -u ub.bin"
+  echo "           $PROG_NAME -k lin.bin"
+  echo "           $PROG_NAME -f fs.yaffs2"
+  exit;
+}
+
+check_image_type()
+{
+    IMAGE_NAME=$1
+    if echo $IMAGE_NAME | grep -E "uboot|u-boot|bootloader" > /dev/null ; then
+        IMAGE_TYPE=BOOTLOADER
+    elif echo $IMAGE_NAME | grep -E "linux|kernel" > /dev/null ; then
+        IMAGE_TYPE=KERNEL
+    elif  echo $IMAGE_NAME | grep -E "rootfs|fs" > /dev/null ; then
+        IMAGE_TYPE=ROOTFS
+    else
+        IMAGE_TYPE=UNKNOW
+    fi
+}
+
+up_bootloader()
+{
+    IMAGE_FILE=$1
+    echo "Upgrade bootloader image '$IMAGE_FILE'"
+
+    #To-Do: Find the mtd here, only do upgrade if we can find it, or throw error and exit out
+    #echo $mtd | grep -E "u-boot|uboot" | awk -F ":" '{print $1}'
+
+    #To-Do: Start to burn the image to corresponding partition here
+}
+
+up_kernel()
+{
+    IMAGE_FILE=$1
+    echo "Upgrade linux kernel image '$IMAGE_FILE'"
+
+    #To-Do: Find the mtd here, only do upgrade if we can find it, or throw error and exit out
+    #echo $mtd | grep -E "linux|kernel" | awk -F ":" '{print $1}'
+
+    #To-Do: Start to burn the image to corresponding partition here
+}
+
+check_and_umount()
+{
+    MTD=$1
+    MTDBLOCK=mtdblock${MTD:3}
+}
+
+burn_image()
+{
+
+}
+
+up_rootfs()
+{
+    ROOTFS_TYPE=${IMAGE_NAME##*.}
+    VALID_ROOTFS_TYPE=0
+
+    for i in jffs2 yaffs2 ubifs ramdisk cramfs ; do
+        if [ $i == $ROOTFS_TYPE ] ; then
+            VALID_ROOTFS_TYPE=1
+            break;
+        fi
+    done
+
+    if [ 0 == $VALID_ROOTFS_TYPE ] ; then
+        echo "============================================================================================"
+        echo "ERROR: Unknow rootfs image '$IMAGE_NAME', suffix/type: .$ROOTFS_TYPE"
+        echo "The suffix of rootfs image file name should be: .ramdisk .yaffs2 .jffs2 .ubifs .cramfs"
+        echo "============================================================================================"
+        usage
+    fi
+
+    echo "Upgrade $ROOTFS_TYPE rootfs image '$IMAGE_FILE'"
+
+    #To-Do: Find the mtd here, only do upgrade if we can find it, or throw error and exit out
+    #echo $mtd | grep -E "fs_type" | awk -F ":" '{print $1}'
+
+    #To-Do: Check this partition already mounted or not, if mounted then umount it first here
+
+    #To-Do: Start to burn the image to corresponding partition here
+}
+
+
+while getopts "afku" opt
+do
+   case $opt in
+      a)
+           IMAGE_TYPE=APPS
+           shift 1
+           break;
+           ;;
+
+      k)
+           IMAGE_TYPE=KERNEL
+           shift 1
+           break;
+           ;;
+
+      f)
+           IMAGE_TYPE=ROOTFS
+           shift 1
+           break;
+           ;;
+
+      u)
+           IMAGE_TYPE=BOOTLOADER
+           shift 1
+           break;
+           ;;
+
+      h)
+           usage
+           ;;
+
+      ?)
+           usage
+           ;;
+   esac
+done
+
+check_and_umount
+
+IMAGE_FILE=$1
+if [ ! -n "$IMAGE_FILE" ] ; then
+    usage
+fi
+
+if [ ! -n "$IMAGE_TYPE" ] ; then
+    check_image_type  $IMAGE_FILE
+fi
+
+if [ $IMAGE_TYPE == BOOTLOADER ] ; then
+    up_bootloader $IMAGE_FILE
+elif [ $IMAGE_TYPE == KERNEL ] ; then
+    up_kernel $IMAGE_FILE
+elif [ $IMAGE_TYPE == ROOTFS ] ; then
+    up_rootfs $IMAGE_FILE
+else
+    echo "============================================================================================"
+    echo "ERROR: Unknow image type: '$IMAGE_NAME'"
+    echo "============================================================================================"
+    usage
+fi
+

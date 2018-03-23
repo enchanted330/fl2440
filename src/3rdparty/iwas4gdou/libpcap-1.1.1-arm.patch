@@ -1,0 +1,32 @@
+diff -Nuar libpcap-1.1.1/configure libpcap-1.1.1-arm/configure
+--- libpcap-1.1.1/configure	2010-03-12 09:56:53.000000000 +0800
++++ libpcap-1.1.1-arm/configure	2015-04-10 14:14:00.745110324 +0800
+@@ -6898,11 +6898,6 @@
+ 
+ else
+ 
+-if test -z "$with_pcap" && test "$cross_compiling" = yes; then
+-	{ { echo "$as_me:$LINENO: error: pcap type not determined when cross-compiling; use --with-pcap=..." >&5
+-echo "$as_me: error: pcap type not determined when cross-compiling; use --with-pcap=..." >&2;}
+-   { (exit 1); exit 1; }; }
+-fi
+ 
+ # Check whether --with-pcap was given.
+ if test "${with_pcap+set}" = set; then
+@@ -7234,16 +7229,6 @@
+  	fi
+ 	{ echo "$as_me:$LINENO: result: $ac_cv_linux_vers" >&5
+ echo "${ECHO_T}$ac_cv_linux_vers" >&6; }
+- 	if test $ac_cv_linux_vers = unknown ; then
+- 		{ { echo "$as_me:$LINENO: error: cannot determine linux version when cross-compiling" >&5
+-echo "$as_me: error: cannot determine linux version when cross-compiling" >&2;}
+-   { (exit 1); exit 1; }; }
+- 	fi
+-	if test $ac_cv_linux_vers -lt 2 ; then
+-		{ { echo "$as_me:$LINENO: error: version 2 or higher required; see the INSTALL doc for more info" >&5
+-echo "$as_me: error: version 2 or higher required; see the INSTALL doc for more info" >&2;}
+-   { (exit 1); exit 1; }; }
+-	fi
+ 
+ 	#
+ 	# Do we have the wireless extensions?

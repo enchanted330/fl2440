@@ -1,0 +1,145 @@
+1,修改源代码
+[guowenxue@centos6 kernel]$ vim linux-3.0/arch/arm/mach-s3c2440/mach-smdk2440.c
+头文件处添加norflash驱动需要的头文件：
+/*  add by guowenxue for norflash  */
+#include <linux/mtd/physmap.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
+
+代码处添加norflash设备：
+/* Add 4MiB Intel norflash JS28F320 on fl2440 by guowenxue 2012.12.09 */
+#define NORFLASH_BASE   S3C2410_CS1
+#define NORFLASH_SIZE   SZ_4M
+
+static struct mtd_partition __initdata norflash_partitions[] = {
+    {
+        .name   = "norflash bootloader",
+        .offset = 0,
+        .size   = SZ_512K,
+    },
+    {
+        .name   = "norflash system",
+        .offset = MTDPART_OFS_NXTBLK,
+        .size   = MTDPART_SIZ_FULL,
+    },
+};
+
+static struct physmap_flash_data norflash_data = {
+    .width      = 2,
+    .parts      = norflash_partitions,
+    .nr_parts   = ARRAY_SIZE(norflash_partitions),
+};
+
+
+static struct resource norflash_resources[] = {
+    {
+        .start  = NORFLASH_BASE,
+        .end    = NORFLASH_BASE + NORFLASH_SIZE - 1,
+        .flags  = IORESOURCE_MEM,
+    }
+};
+
+static struct platform_device s3c_device_norflash = {
+    .name       = "physmap-flash",
+    .id         = 0,
+    .dev        = {
+        .platform_data = &norflash_data,
+    },
+    .resource   = norflash_resources,
+    .num_resources = ARRAY_SIZE(norflash_resources),
+};
+
+将norflash设备添加到smdk2440_devices数组中:
+static struct platform_device *smdk2440_devices[] __initdata = {
+    &s3c_device_ohci,
+    &s3c_device_lcd,
+    &s3c_device_wdt,
+    &s3c_device_i2c0,
+    &s3c_device_iis,
+    &s3c_device_norflash, /* Add norflash driver by guowenxue, 2012.12.09 */
+    &uda1341_codec,     /* Add uda1341 driver by guowenxue, 2012.03.30 */
+    &s3c24xx_uda134x,   /* Add uda1341 driver by guowenxue, 2012.03.30 */
+    &samsung_asoc_dma,  /* Add uda1341 driver by guowenxue, 2012.03.30 */
+    &s3c_device_dm9000, /* Add DM9000 ethernet car driver by guowenxue, 2011.08.30*/
+    &s3c_device_sdi,    /* Add SD card driver by guowenxue, 2011.09.06*/
+    &s3c_device_rtc,    /* Add RTC driver by guowenxue, 2011.09.06*/
+    &s3c_device_adc,    /* Add Touch Screen driver by guowenxue, 2011.09.06*/
+    &s3c_device_ts,     /* Add Touch Screen driver by guowenxue, 2011.09.06*/
+};
+
+
+make menuconfig配置
+
+Device Drivers  --->
+    <*> Memory Technology Device (MTD) support  --->
+          RAM/ROM/Flash chip drivers  --->
+               <*> Detect flash chips by Common Flash Interface (CFI) probe
+               < > Detect non-CFI AMD/JEDEC-compatible flash chips
+               [ ] Flash chip driver advanced configuration options
+               <*> Support for Intel/Sharp flash chips     
+               < > Support for AMD/Fujitsu/Spansion flash chips
+               < > Support for ST (Advanced Architecture) flash chips 
+               < > Support for RAM chips in bus mapping 
+               < > Support for ROM chips in bus mapping
+               < > Support for absent chips in bus mapping  
+          Mapping drivers for chip access  --->   
+               [ ] Support non-linear mappings of flash chips
+               <*> Flash device in physical memory map
+               [ ]   Physmap compat support 
+               < > CFI Flash device mapped on ARM Integrator/P720T 
+               < > Map driver for platform device RAM (mtd-ram)      
+    
+
+内核启动信息探测到Norflash
+physmap platform flash device: 00400000 at 08000000
+physmap-flash.0: Found 1 x16 devices at 0x0 in 16-bit bank. Manufacturer ID 0x000089 Chip ID 0x000016
+Intel/Sharp Extended Query Table at 0x0031
+Intel/Sharp Extended Query Table at 0x0031
+Using buffer write method
+cfi_cmdset_0001: Erase suspend on write enabled
+Using physmap partition information
+Creating 2 MTD partitions on "physmap-flash.0":
+0x000000000000-0x000000080000 : "norflash bootloader"
+0x000000080000-0x000000400000 : "norflash system"
+S3C24XX NAND Driver, (c) 2004 Simtec Electronics
+s3c24xx-nand s3c2440-nand: Tacls=3, 29ns Twrph0=7 69ns, Twrph1=3 29ns
+s3c24xx-nand s3c2440-nand: NAND soft ECC
+NAND device: Manufacturer ID: 0xec, Chip ID: 0xda (Samsung NAND 256MiB 3,3V 8-bit)
+Scanning device for bad blocks
+Bad eraseblock 585 at 0x000004920000
+Bad eraseblock 913 at 0x000007220000
+Bad eraseblock 1391 at 0x00000ade0000
+Bad eraseblock 1817 at 0x00000e320000
+Creating 11 MTD partitions on "NAND":
+0x000000000000-0x000000100000 : "mtdblock0 u-boot 1MB"
+0x000000100000-0x000000500000 : "mtdblock1 kernel 4MB"
+0x000000500000-0x000000f00000 : "mtdblock2 ramdisk 10MB"
+0x000000f00000-0x000001e00000 : "mtdblock3 cramfs 15MB"
+0x000001e00000-0x000004600000 : "mtdblock3 jffs2 40MB"
+0x000004600000-0x000006e00000 : "mtdblock4 yaffs2 40MB"
+0x000006e00000-0x000009600000 : "mtdblock5 ubifs 40MB"
+0x000009600000-0x000009700000 : "mtdblock6 info 1MB"
+0x000009700000-0x00000bf00000 : "mtdblock7 apps 40MB"
+0x00000bf00000-0x00000e700000 : "mtdblock8 data 40MB"
+0x00000e700000-0x000010000000 : "mtdblock9 backup 25MB"
+
+查看系统分区情况(包括nandflash和norflash)：
+WirelessRouter login: root
+Password: 
+~ >: cat /proc/mtd 
+dev:    size   erasesize  name
+mtd0: 00080000 00020000 "norflash bootloader"
+mtd1: 00380000 00020000 "norflash system"
+mtd2: 00100000 00020000 "mtdblock0 u-boot 1MB"
+mtd3: 00400000 00020000 "mtdblock1 kernel 4MB"
+mtd4: 00a00000 00020000 "mtdblock2 ramdisk 10MB"
+mtd5: 00f00000 00020000 "mtdblock3 cramfs 15MB"
+mtd6: 02800000 00020000 "mtdblock3 jffs2 40MB"
+mtd7: 02800000 00020000 "mtdblock4 yaffs2 40MB"
+mtd8: 02800000 00020000 "mtdblock5 ubifs 40MB"
+mtd9: 00100000 00020000 "mtdblock6 info 1MB"
+mtd10: 02800000 00020000 "mtdblock7 apps 40MB"
+mtd11: 02800000 00020000 "mtdblock8 data 40MB"
+mtd12: 01900000 00020000 "mtdblock9 backup 25MB"
+mtd13: 02274000 0001f800 "apps"
+mtd14: 02274000 0001f800 "data"

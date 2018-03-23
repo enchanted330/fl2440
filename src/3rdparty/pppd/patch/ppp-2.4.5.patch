@@ -1,0 +1,79 @@
+diff -Nuar ppp-2.4.5/chat/chat.c ppp-2.4.5-new/chat/chat.c
+--- ppp-2.4.5/chat/chat.c	2009-11-16 22:26:07.000000000 +0000
++++ ppp-2.4.5-new/chat/chat.c	2011-10-15 15:38:16.835758436 +0000
+@@ -1167,7 +1167,9 @@
+ 
+     if (timeout_next) {
+ 	timeout_next = 0;
++    s = clean(s, 0); /* Add by guowenxue */
+ 	timeout = atoi(s);
++    free(s); /* Add by guowenxue  */
+ 	
+ 	if (timeout <= 0)
+ 	    timeout = DEFAULT_CHAT_TIMEOUT;
+diff -Nuar ppp-2.4.5/chat/Makefile.linux ppp-2.4.5-new/chat/Makefile.linux
+--- ppp-2.4.5/chat/Makefile.linux	2009-11-16 22:26:07.000000000 +0000
++++ ppp-2.4.5-new/chat/Makefile.linux	2011-10-15 15:39:25.753003031 +0000
+@@ -14,11 +14,12 @@
+ CFLAGS=	$(COPTS) $(CDEFS)
+ 
+ INSTALL= install
++CC ?= /opt/buildroot-2012.08/arm920t/usr/bin/arm-linux-gcc
+ 
+ all:	chat
+ 
+ chat:	chat.o
+-	$(CC) -o chat chat.o
++	$(CC) -static -o chat chat.o
+ 
+ chat.o:	chat.c
+ 	$(CC) -c $(CFLAGS) -o chat.o chat.c
+diff -Nuar ppp-2.4.5/pppd/auth.c ppp-2.4.5-new/pppd/auth.c
+--- ppp-2.4.5/pppd/auth.c	2009-11-16 22:26:07.000000000 +0000
++++ ppp-2.4.5-new/pppd/auth.c	2011-10-15 15:38:16.835758436 +0000
+@@ -1323,7 +1323,8 @@
+     int hadchap;
+ 
+     hadchap = -1;
+-    ao->neg_upap = !refuse_pap && (passwd[0] != 0 || get_pap_passwd(NULL));
++    /* Modify by guowenxue, don't set password support */
++    ao->neg_upap = !refuse_pap; // && (passwd[0] != 0 || get_pap_passwd(NULL));
+     ao->neg_chap = (!refuse_chap || !refuse_mschap || !refuse_mschap_v2)
+ 	&& (passwd[0] != 0 ||
+ 	    (hadchap = have_chap_secret(user, (explicit_remote? remote_name:
+diff -Nuar ppp-2.4.5/pppd/Makefile.linux ppp-2.4.5-new/pppd/Makefile.linux
+--- ppp-2.4.5/pppd/Makefile.linux	2009-11-16 22:26:07.000000000 +0000
++++ ppp-2.4.5-new/pppd/Makefile.linux	2011-10-15 15:38:16.836783792 +0000
+@@ -30,7 +30,7 @@
+ include .depend
+ endif
+ 
+-# CC = gcc
++CC ?= /opt/buildroot-2012.08/arm920t/usr/bin/arm-linux-gcc
+ #
+ COPTS = -O2 -pipe -Wall -g
+ LIBS =
+@@ -43,12 +43,12 @@
+ #MSLANMAN=y
+ # Uncomment the next line to include support for MPPE.  CHAPMS (above) must
+ # also be enabled.  Also, edit plugins/radius/Makefile.linux.
+-MPPE=y
++#MPPE=y
+ 
+ # Uncomment the next line to include support for PPP packet filtering.
+ # This requires that the libpcap library and headers be installed
+ # and that the kernel driver support PPP packet filtering.
+-FILTER=y
++#FILTER=y
+ 
+ # Uncomment the next line to enable multilink PPP (enabled by default)
+ # Linux distributions: Please leave multilink ENABLED in your builds
+@@ -65,7 +65,7 @@
+ #HAVE_INET6=y
+ 
+ # Enable plugins
+-PLUGIN=y
++#PLUGIN=y
+ 
+ # Enable Microsoft proprietary Callback Control Protocol
+ #CBCP=y

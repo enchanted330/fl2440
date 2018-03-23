@@ -1,0 +1,190 @@
+diff -Nuar u-boot-2010.09/board/lingyun/fl2440/Makefile u-boot-2010.09-3-nand/board/lingyun/fl2440/Makefile
+--- u-boot-2010.09/board/lingyun/fl2440/Makefile	2015-11-16 13:35:08.197993985 +0800
++++ u-boot-2010.09-3-nand/board/lingyun/fl2440/Makefile	2015-11-16 13:37:57.298995667 +0800
+@@ -25,7 +25,7 @@
+ 
+ LIB	= $(obj)lib$(BOARD).a
+ 
+-COBJS	:= fl2440.o nand_read.o flash.o
++COBJS	:= fl2440.o nand_read.o
+ SOBJS	:= lowlevel_init.o
+ 
+ SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
+diff -Nuar u-boot-2010.09/common/cmd_nand.c u-boot-2010.09-3-nand/common/cmd_nand.c
+--- u-boot-2010.09/common/cmd_nand.c	2010-09-29 05:20:55.000000000 +0800
++++ u-boot-2010.09-3-nand/common/cmd_nand.c	2015-11-16 13:37:57.298995667 +0800
+@@ -148,6 +148,11 @@
+ #if defined(CONFIG_CMD_MTDPARTS)
+ out:
+ #endif
++    /* If the size is not aligment, then let it's page alignment */
++    if(0 != (*size%nand->writesize)) 
++    {
++        *size = (*size / nand->writesize + 1) * nand->writesize;  
++    }
+ 	printf("device %d ", idx);
+ 	if (*size == nand->size)
+ 		puts("whole chip\n");
+diff -Nuar u-boot-2010.09/drivers/mtd/nand/s3c2410_nand.c u-boot-2010.09-3-nand/drivers/mtd/nand/s3c2410_nand.c
+--- u-boot-2010.09/drivers/mtd/nand/s3c2410_nand.c	2010-09-29 05:20:55.000000000 +0800
++++ u-boot-2010.09-3-nand/drivers/mtd/nand/s3c2410_nand.c	2015-11-16 13:37:57.298995667 +0800
+@@ -24,6 +24,7 @@
+ #include <asm/arch/s3c24x0_cpu.h>
+ #include <asm/io.h>
+ 
++#if defined(CONFIG_S3C2410)
+ #define S3C2410_NFCONF_EN          (1<<15)
+ #define S3C2410_NFCONF_512BYTE     (1<<14)
+ #define S3C2410_NFCONF_4STEP       (1<<13)
+@@ -36,6 +37,20 @@
+ #define S3C2410_ADDR_NALE 4
+ #define S3C2410_ADDR_NCLE 8
+ 
++#elif defined(CONFIG_S3C2440)
++#define S3C2410_NFCONT_EN          (1<<0)
++#define S3C2410_NFCONT_INITECC     (1<<4)
++#define S3C2410_NFCONT_nFCE        (1<<1)
++#define S3C2410_NFCONT_MAINECCLOCK (1<<5)
++#define S3C2410_NFCONF_TACLS(x)    ((x)<<12)
++#define S3C2410_NFCONF_TWRPH0(x)   ((x)<<8)
++#define S3C2410_NFCONF_TWRPH1(x)   ((x)<<4)
++
++#define S3C2410_ADDR_NALE 0x08
++#define S3C2410_ADDR_NCLE 0x0c
++#endif
++ulong IO_ADDR_W = CONFIG_SYS_NAND_BASE;
++
+ #ifdef CONFIG_NAND_SPL
+ 
+ /* in the early stage of NAND flash booting, printf() is not available */
+@@ -59,25 +74,31 @@
+ 	debugX(1, "hwcontrol(): 0x%02x 0x%02x\n", cmd, ctrl);
+ 
+ 	if (ctrl & NAND_CTRL_CHANGE) {
+-		ulong IO_ADDR_W = (ulong)nand;
++		IO_ADDR_W = (ulong)nand;
+ 
+ 		if (!(ctrl & NAND_CLE))
+ 			IO_ADDR_W |= S3C2410_ADDR_NCLE;
+ 		if (!(ctrl & NAND_ALE))
+ 			IO_ADDR_W |= S3C2410_ADDR_NALE;
+ 
+-		chip->IO_ADDR_W = (void *)IO_ADDR_W;
++		//chip->IO_ADDR_W = (void *)IO_ADDR_W;
+ 
+ 		if (ctrl & NAND_NCE)
+-			writel(readl(&nand->NFCONF) & ~S3C2410_NFCONF_nFCE,
+-			       &nand->NFCONF);
++#if defined(CONFIG_S3C2410)
++			writel(readl(&nand->NFCONF) & ~S3C2410_NFCONF_nFCE, &nand->NFCONF);
++#elif defined(CONFIG_S3C2440)
++            writel(readl(&nand->NFCONT) & ~S3C2410_NFCONT_nFCE, &nand->NFCONT);
++#endif
+ 		else
+-			writel(readl(&nand->NFCONF) | S3C2410_NFCONF_nFCE,
+-			       &nand->NFCONF);
++#if defined(CONFIG_S3C2410)
++			writel(readl(&nand->NFCONF) | S3C2410_NFCONF_nFCE, &nand->NFCONF);
++#elif defined(CONFIG_S3C2440)
++            writel(readl(&nand->NFCONT) | S3C2410_NFCONT_nFCE, &nand->NFCONT);
++#endif
+ 	}
+ 
+ 	if (cmd != NAND_CMD_NONE)
+-		writeb(cmd, chip->IO_ADDR_W);
++        writeb(cmd, (void *)IO_ADDR_W);
+ }
+ 
+ static int s3c2410_dev_ready(struct mtd_info *mtd)
+@@ -92,7 +113,11 @@
+ {
+ 	struct s3c2410_nand *nand = s3c2410_get_base_nand();
+ 	debugX(1, "s3c2410_nand_enable_hwecc(%p, %d)\n", mtd, mode);
++#if defined(CONFIG_S3C2410)
+ 	writel(readl(&nand->NFCONF) | S3C2410_NFCONF_INITECC, &nand->NFCONF);
++#elif defined(CONFIG_S3C2440)
++    writel(readl(&nand->NFCONT) | S3C2410_NFCONT_INITECC, &nand->NFCONT);
++#endif
+ }
+ 
+ static int s3c2410_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat,
+@@ -132,6 +157,7 @@
+ 
+ 	writel(readl(&clk_power->CLKCON) | (1 << 4), &clk_power->CLKCON);
+ 
++#if defined(CONFIG_S3C2410)
+ 	/* initialize hardware */
+ 	twrph0 = 3;
+ 	twrph1 = 0;
+@@ -145,6 +171,20 @@
+ 
+ 	/* initialize nand_chip data structure */
+ 	nand->IO_ADDR_R = nand->IO_ADDR_W = (void *)&nand_reg->NFDATA;
++#elif defined(CONFIG_S3C2440) 
++    twrph0 = 4; 
++    twrph1 = 2; 
++    tacls = 0; 
++    cfg = 0;
++    cfg |= S3C2410_NFCONF_TACLS(tacls - 1);
++    cfg |= S3C2410_NFCONF_TWRPH0(twrph0 - 1);
++    cfg |= S3C2410_NFCONF_TWRPH1(twrph1 - 1);
++    writel(cfg, &nand_reg->NFCONF); 
++    cfg = (0<<13)|(0<<12)|(0<<10)|(0<<9)|(0<<8)|(0<<6)|(0<<5)|(1<<4)|(0<<1)|(1<<0);
++    writel(cfg, &nand_reg->NFCONT);
++    /*  initialize nand_chip data structure */
++    nand->IO_ADDR_R = nand->IO_ADDR_W = (void *)&nand_reg->NFDATA;
++#endif
+ 
+ 	nand->select_chip = NULL;
+ 
+diff -Nuar u-boot-2010.09/include/configs/fl2440.h u-boot-2010.09-3-nand/include/configs/fl2440.h
+--- u-boot-2010.09/include/configs/fl2440.h	2015-11-16 13:35:08.199994163 +0800
++++ u-boot-2010.09-3-nand/include/configs/fl2440.h	2015-11-16 13:37:57.298995667 +0800
+@@ -103,6 +103,7 @@
+ #define CONFIG_CMD_DATE
+ #define CONFIG_CMD_ELF
+ #define CONFIG_CMD_PING
++#define CONFIG_CMD_NAND
+ 
+ 
+ #define CONFIG_BOOTDELAY	2
+@@ -159,11 +160,15 @@
+ 
+ #define CONFIG_SYS_FLASH_BASE		PHYS_FLASH_1
+ 
++#define CONFIG_SYS_NO_FLASH         1
++#undef  CONFIG_CMD_IMLS
++
+ /*-----------------------------------------------------------------------
+  * FLASH and environment organization
+  */
+-
++#ifndef CONFIG_SYS_NO_FLASH
+ #define CONFIG_AMD_LV400	1	/* uncomment this if you have a LV400 flash */
++#endif
+ #if 0
+ #define CONFIG_AMD_LV800	1	/* uncomment this if you have a LV800 flash */
+ #endif
+@@ -184,7 +189,22 @@
+ #define CONFIG_SYS_FLASH_ERASE_TOUT	(5*CONFIG_SYS_HZ) /* Timeout for Flash Erase */
+ #define CONFIG_SYS_FLASH_WRITE_TOUT	(5*CONFIG_SYS_HZ) /* Timeout for Flash Write */
+ 
++#ifndef CONFIG_SYS_NO_FLASH
+ #define	CONFIG_ENV_IS_IN_FLASH	1
+ #define CONFIG_ENV_SIZE		0x10000	/* Total Size of Environment Sector */
++#endif
++
++#if defined(CONFIG_CMD_NAND) 
++#define CONFIG_NAND_S3C2410 
++#define CONFIG_S3C2410_NAND_SKIP_BAD  1 
++#define CONFIG_SYS_NAND_BASE          0x4E000000 
++#define CONFIG_SYS_MAX_NAND_DEVICE    1   /* Max number of NAND devices */ 
++#define CONFIG_SYS_NAND_MAX_CHIPS     1
++#define CONFIG_MTD_NAND_VERIFY_WRITE 
++
++#define CONFIG_ENV_IS_IN_NAND   1 
++#define CONFIG_ENV_OFFSET       0X60000 
++#define CONFIG_ENV_SIZE         0x20000 /* Total Size of Environment Sector */ 
++#endif  /*   CONFIG_CMD_NAND */ 
+ 
+ #endif	/* __CONFIG_H */

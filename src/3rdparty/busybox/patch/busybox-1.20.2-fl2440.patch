@@ -1,0 +1,26 @@
+diff -Nuar busybox-1.20.2/miscutils/nandwrite.c busybox-1.20.2-fl2440/miscutils/nandwrite.c
+--- busybox-1.20.2/miscutils/nandwrite.c	2012-07-02 22:08:25.000000000 +0800
++++ busybox-1.20.2-fl2440/miscutils/nandwrite.c	2015-04-11 17:21:55.488808790 +0800
+@@ -90,8 +90,10 @@
+ 		if (xioctl(fd, MEMGETBADBLOCK, &offs) == 0)
+ 			return block_offset;
+ 		/* ioctl returned 1 => "bad block" */
++#if 0 /* Comment by guowenxue  */
+ 		if (IS_NANDWRITE)
+ 			printf("Skipping bad block at 0x%08x\n", block_offset);
++#endif
+ 		block_offset += meminfo->erasesize;
+ 	}
+ }
+@@ -181,7 +183,11 @@
+ 			/* starting a new eraseblock */
+ 			mtdoffset = next_good_eraseblock(fd, &meminfo, blockstart);
+ 			if (IS_NANDWRITE)
++#if 0 /* Comment by guowenxue  */
+ 				printf("Writing at 0x%08x\n", mtdoffset);
++#else
++                ; /* Do nothing here  */
++#endif
+ 			else if (mtdoffset > blockstart) {
+ 				int bad_len = MIN(mtdoffset, limit) - blockstart;
+ 				dump_bad(&meminfo, bad_len, !(opts & OPT_o));

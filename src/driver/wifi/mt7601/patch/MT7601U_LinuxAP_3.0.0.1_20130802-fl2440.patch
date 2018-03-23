@@ -1,0 +1,110 @@
+diff -Nuar MT7601U_LinuxAP_3.0.0.1_20130802/common/rtusb_dev_id.c MT7601U_LinuxAP_3.0.0.1_20130802-fl2440/common/rtusb_dev_id.c
+--- MT7601U_LinuxAP_3.0.0.1_20130802/common/rtusb_dev_id.c	2013-08-06 10:19:01.000000000 +0800
++++ MT7601U_LinuxAP_3.0.0.1_20130802-fl2440/common/rtusb_dev_id.c	2015-04-10 10:46:12.202807890 +0800
+@@ -40,6 +40,9 @@
+ #ifdef MT7601U
+ 	{USB_DEVICE(0x148f,0x6370)}, /* Ralink 6370 */
+ 	{USB_DEVICE(0x148f,0x7601)}, /* MT 6370 */
++	{USB_DEVICE(0x148f,0x760b)}, /* 360 WiFi2 */
++	{USB_DEVICE(0x2955,0x1001)}, /* Baidu WiFi */
++	{USB_DEVICE(0x2717,0x4106)}, /* Xiaomi WiFi */
+ #endif /* MT7601U */
+ 	{ }/* Terminating entry */
+ };
+diff -Nuar MT7601U_LinuxAP_3.0.0.1_20130802/Makefile MT7601U_LinuxAP_3.0.0.1_20130802-fl2440/Makefile
+--- MT7601U_LinuxAP_3.0.0.1_20130802/Makefile	2013-08-06 10:19:01.000000000 +0800
++++ MT7601U_LinuxAP_3.0.0.1_20130802-fl2440/Makefile	2015-04-10 10:45:25.150810130 +0800
+@@ -27,8 +27,8 @@
+ RTMP_SRC_DIR = $(RT28xx_DIR)/RT$(MODULE)
+ 
+ #PLATFORM: Target platform
+-PLATFORM = PC
+-#PLATFORM = 5VT
++#PLATFORM = PC
++PLATFORM = 5VT
+ #PLATFORM = IKANOS_V160
+ #PLATFORM = IKANOS_V180
+ #PLATFORM = SIGMA
+@@ -101,8 +101,8 @@
+ endif
+ 
+ ifeq ($(PLATFORM),5VT)
+-LINUX_SRC = /home/ralink-2860-sdk-5vt-distribution/linux-2.6.17
+-CROSS_COMPILE = /opt/crosstool/uClibc_v5te_le_gcc_4_1_1/bin/arm-linux-
++LINUX_SRC = ../../../../kernel/linux-3.0
++CROSS_COMPILE = /opt/buildroot-2012.08/arm920t/usr/bin/arm-linux-
+ endif
+ 
+ ifeq ($(PLATFORM),UBICOM_IPX8)
+@@ -402,9 +402,9 @@
+ 
+ ifeq ($(RT28xx_MODE),AP)
+ ifneq ($(findstring 7601,$(CHIPSET)),)
+-	cp -f $(RT28xx_DIR)/os/linux/mt$(MODULE)ap.ko /tftpboot
++	cp -f $(RT28xx_DIR)/os/linux/mt$(MODULE)ap.ko /tftp
+ else
+-	cp -f $(RT28xx_DIR)/os/linux/rt$(MODULE)ap.ko /tftpboot
++	cp -f $(RT28xx_DIR)/os/linux/rt$(MODULE)ap.ko /tftp
+ endif
+ ifeq ($(OSABL),YES)
+ 	cp -f $(RT28xx_DIR)/os/linux/rtutil$(MODULE)ap.ko /tftpboot
+@@ -467,6 +467,7 @@
+ 	cp -f os/linux/Makefile.clean os/linux/Makefile
+ 	$(MAKE) -C os/linux clean
+ 	rm -rf os/linux/Makefile
++	rm -f tools/bin2h
+ endif	
+ ifeq ($(TARGET), UCOS)
+ 	$(MAKE) -C os/ucos clean MODE=$(RT28xx_MODE)
+diff -Nuar MT7601U_LinuxAP_3.0.0.1_20130802/os/linux/config.mk MT7601U_LinuxAP_3.0.0.1_20130802-fl2440/os/linux/config.mk
+--- MT7601U_LinuxAP_3.0.0.1_20130802/os/linux/config.mk	2013-08-06 10:19:02.000000000 +0800
++++ MT7601U_LinuxAP_3.0.0.1_20130802-fl2440/os/linux/config.mk	2015-04-10 10:45:25.158806720 +0800
+@@ -22,13 +22,13 @@
+ HAS_WDS=n
+ 
+ # Support AP-Client function
+-HAS_APCLI=n
++HAS_APCLI=y
+ 
+ 
+ 
+ 
+ #Support Net interface block while Tx-Sw queue full
+-HAS_BLOCK_NET_IF=n
++HAS_BLOCK_NET_IF=y
+ 
+ #Support IGMP-Snooping function.
+ HAS_IGMP_SNOOP_SUPPORT=n
+@@ -67,7 +67,7 @@
+ HAS_SNMP_SUPPORT=n
+ 
+ #Support features of 802.11n Draft3
+-HAS_DOT11N_DRAFT3_SUPPORT=n
++HAS_DOT11N_DRAFT3_SUPPORT=y
+ 
+ #Support features of Single SKU. 
+ HAS_SINGLE_SKU_SUPPORT=n
+@@ -256,7 +256,8 @@
+ # config for AP mode
+ 
+ ifeq ($(RT28xx_MODE),AP)
+-WFLAGS += -DCONFIG_AP_SUPPORT  -DUAPSD_SUPPORT -DMBSS_SUPPORT -DIAPP_SUPPORT -DDBG -DDOT1X_SUPPORT -DAP_SCAN_SUPPORT -DSCAN_SUPPORT
++#WFLAGS += -DCONFIG_AP_SUPPORT  -DUAPSD_SUPPORT -DMBSS_SUPPORT -DIAPP_SUPPORT -DDBG -DDOT1X_SUPPORT -DAP_SCAN_SUPPORT -DSCAN_SUPPORT
++WFLAGS += -DCONFIG_AP_SUPPORT  -DUAPSD_SUPPORT -DMBSS_SUPPORT -DIAPP_SUPPORT -DDOT1X_SUPPORT -DAP_SCAN_SUPPORT -DSCAN_SUPPORT
+ 
+ ifeq ($(HAS_APCLI_WPA_SUPPLICANT),y)
+ WFLAGS += -DApCli_WPA_SUPPLICANT_SUPPORT
+@@ -951,9 +952,11 @@
+ endif
+ 
+ ifeq ($(PLATFORM),5VT)
+-CFLAGS := -D__KERNEL__ -I$(LINUX_SRC)/include -mlittle-endian -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -O3 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-omit-frame-pointer -mapcs -mno-sched-prolog -mabi=apcs-gnu -mno-thumb-interwork -D__LINUX_ARM_ARCH__=5 -march=armv5te -mtune=arm926ej-s --param max-inline-insns-single=40000  -Uarm -Wdeclaration-after-statement -Wno-pointer-sign -DMODULE $(WFLAGS) 
++#CFLAGS := -D__KERNEL__ -I$(LINUX_SRC)/include -mlittle-endian -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -O3 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-omit-frame-pointer -mapcs -mno-sched-prolog -mabi=apcs-gnu -mno-thumb-interwork -D__LINUX_ARM_ARCH__=5 -march=armv5te -mtune=arm926ej-s --param max-inline-insns-single=40000  -Uarm -Wdeclaration-after-statement -Wno-pointer-sign -DMODULE $(WFLAGS) 
+ 
+-export CFLAGS
++#export CFLAGS
++EXTRA_CFLAGS := -D__KERNEL__ -I$(LINUX_SRC)/include $(WFLAGS) -I$(RT28xx_DIR)/include
++export EXTRA_CFLAGS
+ endif
+ 
+ ifeq ($(PLATFORM),IKANOS_V160)
